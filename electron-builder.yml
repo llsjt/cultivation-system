@@ -1,0 +1,19 @@
+appId: local.cultivation.system
+productName: CultivationSystem
+directories:
+  output: release
+files:
+  - out/**
+  - package.json
+asarUnpack:
+  - node_modules/better-sqlite3/**
+  - node_modules/bindings/**
+extraResources:
+  - from: drizzle
+    to: drizzle
+npmRebuild: false
+nodeGypRebuild: false
+win:
+  signAndEditExecutable: false
+  target:
+    - portable
