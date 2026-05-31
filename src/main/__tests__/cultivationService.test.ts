@@ -1,9 +1,10 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { performance } from 'node:perf_hooks';
 import path from 'node:path';
 
 import Database from 'better-sqlite3';
+import type { Database as BetterSqliteDatabase } from 'better-sqlite3';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CultivationService } from '../services/cultivationService';
@@ -15,23 +16,30 @@ const shellMocks = vi.hoisted(() => ({
 }));
 
 vi.mock('electron', () => ({
+  BrowserWindow: vi.fn(),
   shell: shellMocks,
 }));
 
 function migrateMemoryDb() {
   const db = new Database(':memory:');
   enableForeignKeys(db);
-  const migration = readFileSync(path.resolve(process.cwd(), 'drizzle/0000_mute_spirit.sql'), 'utf8').replaceAll('--> statement-breakpoint', '');
-  db.exec(migration);
+  runMigrations(db);
   return db;
 }
 
 function migrateFileDb(filePath: string) {
   const db = new Database(filePath);
   enableForeignKeys(db);
-  const migration = readFileSync(path.resolve(process.cwd(), 'drizzle/0000_mute_spirit.sql'), 'utf8').replaceAll('--> statement-breakpoint', '');
-  db.exec(migration);
+  runMigrations(db);
   return db;
+}
+
+function runMigrations(db: BetterSqliteDatabase) {
+  const migrationsDir = path.resolve(process.cwd(), 'drizzle');
+  for (const fileName of readdirSync(migrationsDir).filter((name) => name.endsWith('.sql')).sort()) {
+    const migration = readFileSync(path.join(migrationsDir, fileName), 'utf8').replaceAll('--> statement-breakpoint', '');
+    db.exec(migration);
+  }
 }
 
 function createService() {
@@ -126,6 +134,138 @@ describe('CultivationService', () => {
       expect(overviewAfterLog.recommended?.id).toBe(resource.id);
       expect(overviewAfterLog.recommended_project_progress).toBe(65);
       expect(overviewAfterLog.recent_logs[0]?.id).toBe(saved.log.id);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('evaluates dao foundation and records a real breakthrough attempt', () => {
+    const { db, service } = createService();
+
+    try {
+      const project = service.createProject({ name: 'Frontend Dao', description: null });
+      const core = service.createResource({
+        project_id: project.id,
+        title: 'React core',
+        type: 'document',
+        open_kind: 'record_only',
+        cultivation_role: 'core',
+        initial_progress_percent: 100,
+      });
+      const trial = service.createResource({
+        project_id: project.id,
+        title: 'React todo trial',
+        type: 'exercise',
+        open_kind: 'record_only',
+        cultivation_role: 'trial',
+        initial_progress_percent: 100,
+      });
+
+      service.saveStudyLog({
+        resource_id: core.id,
+        source: 'record_only',
+        progress_percent: 100,
+        progress_text: 'Core understood',
+        next_action: 'Do trial',
+        evidence_type: 'assessment',
+        resource_updated_at_before: core.updated_at,
+      });
+      service.saveStudyLog({
+        resource_id: trial.id,
+        source: 'record_only',
+        progress_percent: 100,
+        progress_text: 'Trial completed',
+        next_action: 'Review weak spots',
+        evidence_type: 'practice',
+        resource_updated_at_before: trial.updated_at,
+      });
+
+      const cultivation = service.getProjectCultivation(project.id);
+      expect(cultivation.can_breakthrough).toBe(true);
+      expect(cultivation.metrics.core_mastery).toBe(100);
+      expect(cultivation.metrics.trial_mastery).toBe(100);
+
+      const attempt = service.attemptBreakthrough(project.id);
+      expect(attempt.passed).toBe(true);
+      expect(attempt.project).toMatchObject({ realm_rank: 1, realm_name: '筑基', realm_layer: 1 });
+      expect(attempt.cultivation.can_breakthrough).toBe(false);
+      expect(attempt.cultivation.bottlenecks).toContain('上次突破后需要新的出关记录。');
+
+      const row = db.prepare('SELECT passed, dao_foundation_score FROM breakthrough_attempts WHERE id = ?').get(attempt.attempt_id) as {
+        passed: number;
+        dao_foundation_score: number;
+      };
+      expect(row.passed).toBe(1);
+      expect(row.dao_foundation_score).toBeGreaterThanOrEqual(80);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('records bottlenecks when breakthrough requirements are not met', () => {
+    const { db, service } = createService();
+
+    try {
+      const project = service.createProject({ name: 'Incomplete Dao', description: null });
+      service.createResource({
+        project_id: project.id,
+        title: 'Only core',
+        type: 'document',
+        open_kind: 'record_only',
+        cultivation_role: 'core',
+        initial_progress_percent: 80,
+      });
+
+      const attempt = service.attemptBreakthrough(project.id);
+      expect(attempt.passed).toBe(false);
+      expect(attempt.project.realm_rank).toBe(0);
+      expect(attempt.cultivation.bottlenecks).toContain('至少需要 1 个突破试炼或练习类资料。');
+
+      const row = db.prepare('SELECT passed, bottleneck_summary FROM breakthrough_attempts WHERE id = ?').get(attempt.attempt_id) as {
+        passed: number;
+        bottleneck_summary: string;
+      };
+      expect(row.passed).toBe(0);
+      expect(row.bottleneck_summary).toContain('突破试炼');
+    } finally {
+      db.close();
+    }
+  });
+
+  it('preserves omitted progress text and next action when saving a compact study log', () => {
+    const { db, service } = createService();
+
+    try {
+      const project = service.createProject({ name: 'Compact Study' });
+      const resource = service.createResource({
+        project_id: project.id,
+        title: 'Minimal record',
+        type: 'document',
+        open_kind: 'record_only',
+        initial_progress_percent: 20,
+        initial_progress_text: 'Keep the current marker',
+        initial_next_action: 'Keep the next step',
+      });
+
+      const saved = service.saveStudyLog({
+        resource_id: resource.id,
+        source: 'record_only',
+        progress_percent: 35,
+        duration_minutes: 12,
+        resource_updated_at_before: resource.updated_at,
+      });
+
+      expect(saved.log).toMatchObject({
+        duration_minutes: 12,
+        progress_before_percent: 20,
+        progress_after_percent: 35,
+        next_action: 'Keep the next step',
+      });
+      expect(saved.resource).toMatchObject({
+        progress_percent: 35,
+        progress_text: 'Keep the current marker',
+        next_action: 'Keep the next step',
+      });
     } finally {
       db.close();
     }
@@ -280,6 +420,46 @@ describe('CultivationService', () => {
         status_before: 'learning',
       });
       expect(saved.progress_delta).toBe(50);
+      expect(service.getPendingSession()).toBeNull();
+    } finally {
+      db.close();
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('records pending close time and uses its duration when saving the study log', async () => {
+    const { db, service } = createService();
+    const tempDir = mkdtempSync(path.join(tmpdir(), 'cultivation-service-'));
+    const tempFile = path.join(tempDir, 'lesson.txt');
+    writeFileSync(tempFile, 'lesson');
+    shellMocks.openPath.mockResolvedValue('');
+
+    try {
+      const project = service.createProject({ name: 'Close Time Study' });
+      const resource = service.createResource({
+        project_id: project.id,
+        title: 'Timed lesson',
+        type: 'document',
+        open_kind: 'file',
+        path_or_url: tempFile,
+        initial_progress_percent: 10,
+      });
+      const opened = await service.continueResource({ resource_id: resource.id });
+      expect(opened.result).toBe('opened');
+
+      const closed = service.closePendingSession({ session_id: opened.pending?.id ?? '', close_source: 'user_ended' });
+      expect(closed.closed_at).toBeTruthy();
+      expect(closed.close_source).toBe('user_ended');
+      expect(closed.duration_minutes).toBeGreaterThanOrEqual(0);
+
+      const saved = service.saveStudyLog({
+        resource_id: resource.id,
+        source: 'pending',
+        progress_percent: 25,
+        progress_text: 'Closed and recorded',
+        resource_updated_at_before: opened.pending?.resource_updated_at_before ?? '',
+      });
+      expect(saved.log.duration_minutes).toBe(closed.duration_minutes);
       expect(service.getPendingSession()).toBeNull();
     } finally {
       db.close();

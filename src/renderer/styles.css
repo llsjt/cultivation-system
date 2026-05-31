@@ -43,6 +43,8 @@ body {
   margin: 0;
   background: var(--bg, #0b0e0f);
   color: var(--text, #ece8dc);
+  font-size: 16px;
+  line-height: 1.5;
   overflow: hidden; /* 防止双滚动条 */
 }
 
@@ -164,17 +166,30 @@ button:focus-visible {
   width: 300px;
   height: 100%;
   flex-shrink: 0;
-  background: rgba(14, 18, 19, 0.78);
-  border-right: 1px solid var(--line-strong, #8a733e);
-  backdrop-filter: blur(12px);
+  background: linear-gradient(180deg, rgba(14, 28, 44, 0.88) 0%, rgba(8, 17, 28, 0.96) 100%) !important;
+  border-right: 1px solid rgba(120, 190, 235, 0.38) !important;
+  backdrop-filter: blur(16px);
   display: flex;
   flex-direction: column;
-  box-shadow: 4px 0 24px rgb(0 0 0 / 0.5);
+  box-shadow: 6px 0 30px rgba(8, 17, 28, 0.6);
+
+  /* 清风蓝白修仙风格 - 局部覆盖境界变量 */
+  --accent-strong: #a5f3fc; /* 极亮晶蓝 */
+  --accent-strong-rgb: 165 243 252;
+  --accent: #22d3ee; /* 清澈冰蓝 */
+  --accent-rgb: 34 211 238;
+  --line-strong: rgba(34, 211, 238, 0.45);
+  --line: rgba(34, 211, 238, 0.2);
+  --text: #f0fdfa; /* 极淡冰白 */
+  --muted: rgba(204, 251, 241, 0.6);
+  --surface-soft: rgba(6, 15, 26, 0.65);
+  --surface-strong: rgba(14, 30, 48, 0.8);
+  --accent-gradient: linear-gradient(135deg, #ffffff, #cffafe, #22d3ee);
 }
 
 .sidebar-header {
   padding: 24px 20px;
-  border-bottom: 1px solid rgba(138, 115, 62, 0.3);
+  border-bottom: 1px solid rgba(34, 211, 238, 0.3) !important;
 }
 
 .logo-wrap {
@@ -207,7 +222,7 @@ button:focus-visible {
 
 .save-status {
   margin: 6px 0 0;
-  font-size: 11px;
+  font-size: 14px;
   color: var(--muted, #a69e8d);
 }
 
@@ -249,14 +264,14 @@ button:focus-visible {
 
 .new-project-toggle:hover,
 .new-project-toggle.active {
-  color: var(--accent-strong, #e6b95d);
-  background: rgba(184, 141, 62, 0.15);
-  border-color: rgba(184, 141, 62, 0.3);
+  color: var(--accent-strong) !important;
+  background: rgb(var(--accent-rgb) / 0.12) !important;
+  border-color: rgb(var(--accent-rgb) / 0.28) !important;
 }
 
 .sidebar-new-project-panel {
-  background: var(--surface-soft, #0e1213);
-  border: 1px solid rgba(138, 115, 62, 0.4);
+  background: var(--surface-soft) !important;
+  border: 1px solid var(--line-strong) !important;
   border-radius: 8px;
   padding: 12px;
   box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
@@ -278,7 +293,7 @@ button:focus-visible {
   flex: 1;
   min-height: 32px;
   padding: 6px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .sidebar-project-list {
@@ -313,19 +328,19 @@ button:focus-visible {
 }
 
 .list-item:hover {
-  border-color: var(--accent, #b88d3e);
+  border-color: var(--accent) !important;
   transform: translateX(2px);
-  background: rgba(184, 141, 62, 0.05);
+  background: rgb(var(--accent-rgb) / 0.06) !important;
 }
 
 .list-item.active {
-  border-color: var(--accent-strong, #e6b95d);
-  background: linear-gradient(90deg, rgba(184, 141, 62, 0.16), rgba(0,0,0,0.1)), var(--surface-strong, #1e2621);
-  box-shadow: 0 0 12px rgba(184, 141, 62, 0.15);
+  border-color: var(--accent-strong) !important;
+  background: linear-gradient(90deg, rgb(var(--accent-rgb) / 0.18), rgba(0,0,0,0.15)), var(--surface-strong) !important;
+  box-shadow: 0 0 12px rgb(var(--accent-rgb) / 0.2) !important;
 }
 
 .list-item.active::before {
-  background: var(--accent-strong, #e6b95d);
+  background: var(--accent-strong) !important;
 }
 
 .list-item-main {
@@ -335,7 +350,7 @@ button:focus-visible {
 }
 
 .project-dot {
-  font-size: 8px;
+  font-size: 14px;
   color: var(--line-strong, #8a733e);
   transition: color 220ms ease;
 }
@@ -352,7 +367,7 @@ button:focus-visible {
 }
 
 .project-meta {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--muted, #a69e8d);
   margin-top: 6px;
   margin-left: 16px;
@@ -384,7 +399,7 @@ button:focus-visible {
 }
 
 .breadcrumb {
-  font-size: 13px;
+  font-size: 14px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -453,7 +468,7 @@ button:focus-visible {
 }
 
 .hero-panel .eyebrow {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--accent-strong, #e6b95d);
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -461,7 +476,7 @@ button:focus-visible {
 
 .hero-panel .next-action {
   margin: 14px 0;
-  font-size: 13px;
+  font-size: 14px;
   padding: 10px 14px;
   border-left: 2px solid var(--accent-strong, #e6b95d);
   background: rgba(184, 141, 62, 0.06);
@@ -502,7 +517,7 @@ button:focus-visible {
 
 .eyebrow {
   font-family: "InkBrushTitle", serif;
-  font-size: 11px;
+  font-size: 14px;
   color: var(--accent-strong, #e6b95d);
   margin: 0;
 }
@@ -520,6 +535,35 @@ button:focus-visible {
 
 .resource-form button {
   grid-column: span 1;
+}
+
+.resource-add-toggle {
+  border-color: rgb(var(--realm-primary-rgb, 157 255 224) / 0.58) !important;
+  background:
+    linear-gradient(90deg, rgb(var(--realm-primary-rgb, 157 255 224) / 0.2), rgb(var(--realm-secondary-rgb, 244 210 122) / 0.13) 54%, rgb(var(--realm-tertiary-rgb, 167 243 255) / 0.1)),
+    rgb(var(--realm-deep-rgb, 4 18 16) / 0.62) !important;
+  color: rgb(var(--realm-metal-rgb, 247 241 223)) !important;
+  text-shadow:
+    0 0 7px rgb(var(--realm-primary-rgb, 157 255 224) / 0.48),
+    0 1px 1px rgba(0, 0, 0, 0.7);
+  box-shadow:
+    inset 0 0 0 1px rgb(var(--realm-primary-rgb, 157 255 224) / 0.16),
+    inset 0 -14px 22px rgba(0, 0, 0, 0.18),
+    0 0 16px rgb(var(--realm-primary-rgb, 157 255 224) / 0.12);
+}
+
+.resource-add-toggle svg {
+  color: rgb(var(--realm-secondary-rgb, 244 210 122));
+  filter: drop-shadow(0 0 5px rgb(var(--realm-secondary-rgb, 244 210 122) / 0.42));
+}
+
+.resource-add-toggle:hover,
+.resource-add-toggle.active {
+  border-color: rgb(var(--realm-secondary-rgb, 244 210 122) / 0.72) !important;
+  background:
+    linear-gradient(90deg, rgb(var(--realm-secondary-rgb, 244 210 122) / 0.18), rgb(var(--realm-primary-rgb, 157 255 224) / 0.17) 50%, rgb(var(--realm-tertiary-rgb, 167 243 255) / 0.12)),
+    rgb(var(--realm-deep-rgb, 4 18 16) / 0.7) !important;
+  color: #fff8df !important;
 }
 
 .resource-list {
@@ -582,7 +626,7 @@ button:focus-visible {
 }
 
 .resource-badge {
-  font-size: 10px;
+  font-size: 14px;
   padding: 2px 8px;
   border-radius: 4px;
   border: 1px solid rgba(138, 115, 62, 0.4);
@@ -605,13 +649,13 @@ button:focus-visible {
 
 .resource-row p {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted, #a69e8d);
   overflow-wrap: anywhere;
 }
 
 .resource-row .next-action {
-  font-size: 12px;
+  font-size: 14px;
   background: rgba(0,0,0,0.2);
   padding: 6px 10px;
   border-radius: 4px;
@@ -634,7 +678,7 @@ button:focus-visible {
 .resource-actions button {
   min-height: 32px;
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 
@@ -727,7 +771,7 @@ button:focus-visible {
   align-items: center;
   justify-content: space-between;
   padding: 4px 6px;
-  font-size: 13px;
+  font-size: 14px;
   transition: background-color 220ms ease;
 }
 
@@ -800,7 +844,7 @@ button:focus-visible {
 }
 
 .log-dot {
-  font-size: 8px;
+  font-size: 14px;
   color: var(--accent, #b88d3e);
   margin-top: 4px;
 }
@@ -812,13 +856,13 @@ button:focus-visible {
 }
 
 .log-item-content strong {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text, #ece8dc);
   line-height: 1.3;
 }
 
 .log-item-content small {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--muted, #a69e8d);
 }
 
@@ -931,6 +975,7 @@ button:focus-visible {
   background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0.28) 48%, transparent 72%);
   transform: translateX(-100%);
   animation: qi-flow 2.8s linear infinite;
+  will-change: transform;
 }
 
 .progress-wrap strong {
@@ -939,7 +984,7 @@ button:focus-visible {
   display: grid;
   place-items: center;
   color: var(--text, #ece8dc);
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 700;
   text-shadow: 0 1px 3px rgba(0,0,0,0.9);
 }
@@ -1018,11 +1063,11 @@ button:focus-visible {
 
 .pending-strip strong {
   color: var(--accent-strong, #e6b95d);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .pending-strip span {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--muted, #a69e8d);
 }
 
@@ -1034,7 +1079,7 @@ button:focus-visible {
 .pending-strip button {
   min-height: 32px;
   padding: 4px 12px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 
@@ -1091,11 +1136,11 @@ button:focus-visible {
   flex-direction: column;
   gap: 6px;
   color: var(--muted, #a69e8d);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .field-hint {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--accent-strong, #e6b95d);
   margin-top: -4px;
 }
@@ -1115,12 +1160,12 @@ button:focus-visible {
 
 .detail-list dt {
   color: var(--muted, #a69e8d);
-  font-size: 11px;
+  font-size: 14px;
 }
 
 .detail-list dd {
   margin: 4px 0 0 0;
-  font-size: 13px;
+  font-size: 14px;
   overflow-wrap: anywhere;
 }
 
@@ -1149,7 +1194,7 @@ button:focus-visible {
 
 
 /* ==================== RESPONSIVE DESIGN ==================== */
-@media (max-width: 1100px) {
+@media (max-width: 900px) {
   .app-shell {
     flex-direction: column;
     overflow-y: auto;
@@ -1157,10 +1202,14 @@ button:focus-visible {
   }
 
   .sidebar {
-    width: 100%;
+    width: 100% !important;
     height: auto;
-    border-right: none;
-    border-bottom: 1px solid var(--line-strong, #8a733e);
+    border-right: none !important;
+    border-bottom: 1px solid rgb(var(--accent-strong-rgb) / 0.22) !important;
+  }
+
+  .sidebar::after {
+    display: none;
   }
 
   .content-area {
@@ -1174,6 +1223,7 @@ button:focus-visible {
 
   .content-grid {
     grid-template-columns: 1fr;
+    gap: 22px;
   }
 
   .wukong-profile-panel {
@@ -1184,6 +1234,21 @@ button:focus-visible {
   .resource-form {
     grid-template-columns: 1fr 1fr;
   }
+
+  .content-header {
+    padding-right: 20px;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1100px) {
+  .hero-panel .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .hero-panel .actions button {
+    width: 100%;
+  }
 }
 
 @media (max-width: 720px) {
@@ -1191,4 +1256,1939 @@ button:focus-visible {
   .detail-list {
     grid-template-columns: 1fr;
   }
+}
+
+/* ==================== PATH PICKER ==================== */
+.path-input-group {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.path-input-group input {
+  flex: 1;
+}
+
+.path-picker-btn {
+  flex-shrink: 0;
+  min-height: 38px;
+  padding: 0 16px;
+  background: var(--surface-strong, #1e2621);
+  border-color: var(--line, #424e41);
+  color: var(--text, #ece8dc);
+}
+
+.path-picker-btn:hover {
+  background: rgba(184, 141, 62, 0.12);
+  border-color: var(--accent-strong, #e6b95d);
+}
+
+/* ==================== 🌟 修仙五大境界专属动态色系 🌟 ==================== */
+.theme-lianqi {
+  --accent-strong: #62c39e;
+  --accent-strong-rgb: 98 195 158;
+  --accent: #2d5f47;
+  --accent-rgb: 45 95 71;
+  --line-strong: #427e5c;
+  --accent-gradient: linear-gradient(135deg, #a8e6cf, #62c39e, #11998e);
+}
+.theme-zhuji {
+  --accent-strong: #5da4e6;
+  --accent-strong-rgb: 93 164 230;
+  --accent: #214360;
+  --accent-rgb: 33 67 96;
+  --line-strong: #33618a;
+  --accent-gradient: linear-gradient(135deg, #5da4e6, #00c6ff, #0072ff);
+}
+.theme-jindan {
+  --accent-strong: #e6b95d;
+  --accent-strong-rgb: 230 185 93;
+  --accent: #b88d3e;
+  --accent-rgb: 184 141 62;
+  --line-strong: #8a733e;
+  --accent-gradient: linear-gradient(135deg, #ffc837, #ff9233, #ff8008);
+}
+.theme-yuanying {
+  --accent-strong: #b19ffb;
+  --accent-strong-rgb: 177 159 251;
+  --accent: #483182;
+  --accent-rgb: 72 49 130;
+  --line-strong: #644fa6;
+  --accent-gradient: linear-gradient(135deg, #b19ffb, #da77f2, #ff007f);
+}
+.theme-huashen {
+  --accent-strong: #ece8dc;
+  --accent-strong-rgb: 236 232 220;
+  --accent: #6b6b6b;
+  --accent-rgb: 107 107 107;
+  --line-strong: #9e9e9e;
+  --accent-gradient: linear-gradient(135deg, #ffffff, #dcdcdc, #8e9eab);
+}
+
+.text-gradient-themed {
+  background: var(--accent-gradient) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  filter: drop-shadow(0 0 4px rgb(var(--accent-strong-rgb) / 0.25)) !important;
+}
+
+/* Dynamically override progress bar background to use theme gradients! */
+.progress-wrap span {
+  background: var(--accent-gradient) !important;
+  box-shadow: 0 0 12px rgb(var(--accent-strong-rgb) / 0.5) !important;
+}
+
+/* ==================== 🪐 聚灵阵法与灵气漂升动效 🪐 ==================== */
+.spiritual-array-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0.16;
+  mix-blend-mode: screen;
+}
+
+.spiritual-array-svg {
+  position: absolute;
+  bottom: -220px;
+  right: -220px;
+  width: 780px;
+  height: 780px;
+  animation: rotate-spiritual-array 75s linear infinite;
+  color: var(--accent-strong);
+  filter: drop-shadow(0 0 16px rgb(var(--accent-strong-rgb) / 0.45));
+  transform-origin: center center;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+@keyframes rotate-spiritual-array {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spiritual-particle {
+  position: absolute;
+  bottom: -15px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffffff, var(--accent-strong));
+  filter: blur(1.5px) drop-shadow(0 0 6px var(--accent-strong));
+  animation: float-up-spiritual 10s ease-in infinite;
+  opacity: 0;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+@keyframes float-up-spiritual {
+  0% {
+    transform: translateY(0) scale(0.6) translateX(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.85;
+  }
+  50% {
+    transform: translateY(-55vh) scale(1) translateX(var(--drift-x, 40px));
+  }
+  85% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateY(-110vh) scale(1.4) translateX(calc(var(--drift-x, 40px) * -1.3));
+    opacity: 0;
+  }
+}
+
+/* ==================== ⚡ 卡片流光灵纹效果 (Runic Border Flow) ==================== */
+.wukong-profile-panel, .hero-panel, .detail-panel, .resource-row {
+  position: relative;
+  transition: all 260ms cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.wukong-profile-panel:hover, .hero-panel:hover, .detail-panel:hover {
+  box-shadow:
+    0 0 0 1px rgb(var(--accent-strong-rgb) / 0.12) inset,
+    0 12px 36px rgba(0, 0, 0, 0.5),
+    0 0 24px rgb(var(--accent-strong-rgb) / 0.08);
+  border-color: var(--accent-strong) !important;
+}
+
+.success-text-glow {
+  color: var(--success) !important;
+  text-shadow: 0 0 8px rgb(var(--success-rgb) / 0.6) !important;
+  animation: status-breath-success 2.5s ease-in-out infinite alternate;
+}
+.cinnabar-text-glow {
+  color: var(--cinnabar) !important;
+  text-shadow: 0 0 8px rgb(var(--danger-rgb) / 0.6) !important;
+  animation: status-breath-danger 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes status-breath-success {
+  from { text-shadow: 0 0 4px rgb(var(--success-rgb) / 0.3); }
+  to { text-shadow: 0 0 12px rgb(var(--success-rgb) / 0.85); }
+}
+@keyframes status-breath-danger {
+  from { text-shadow: 0 0 4px rgb(var(--danger-rgb) / 0.3); }
+  to { text-shadow: 0 0 12px rgb(var(--danger-rgb) / 0.95); }
+}
+
+/* ==================== 🌋 破境成功全屏动效仪式 (Breakthrough Ceremony) ==================== */
+.breakthrough-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: radial-gradient(circle at center, rgba(12, 16, 18, 0.94) 30%, rgba(2, 3, 4, 0.99) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  animation: screen-shake 0.8s cubic-bezier(.36,.07,.19,.97) both;
+  font-family: "InkBrushTitle", "Songti SC", serif;
+}
+
+@keyframes screen-shake {
+  10%, 90% { transform: translate3d(-2px, -2px, 0); }
+  20%, 80% { transform: translate3d(4px, 4px, 0); }
+  30%, 50%, 70% { transform: translate3d(-6px, 2px, 0); }
+  40%, 60% { transform: translate3d(6px, -4px, 0); }
+}
+
+.breakthrough-lightning-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.breakthrough-lightning-path {
+  fill: none;
+  stroke: var(--accent-strong);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 12px var(--accent-strong));
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+  animation: strike-lightning 0.4s ease-out forwards;
+}
+
+@keyframes strike-lightning {
+  to { stroke-dashoffset: 0; opacity: 0; }
+}
+
+.breakthrough-glow-ring {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  z-index: 2;
+  background: radial-gradient(circle, rgb(var(--accent-strong-rgb) / 0.15) 0%, transparent 70%);
+  animation: pulse-glow-ring 3s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-glow-ring {
+  from { transform: scale(0.98); opacity: 0.8; }
+  to { transform: scale(1.03); opacity: 1; }
+}
+
+.breakthrough-glow-ring::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  border: 2px dashed rgb(var(--accent-strong-rgb) / 0.3);
+  animation: rotate-spiritual-array 25s linear infinite;
+}
+
+.breakthrough-core-avatar {
+  width: 140px;
+  height: 140px;
+  color: var(--accent-strong);
+  filter: drop-shadow(0 0 20px var(--accent-strong));
+  animation: float-avatar 4s ease-in-out infinite alternate;
+}
+
+@keyframes float-avatar {
+  from { transform: translateY(-6px) rotate(0deg); }
+  to { transform: translateY(6px) rotate(8deg); }
+}
+
+.breakthrough-ink-text {
+  font-size: 52px;
+  font-weight: 900;
+  color: var(--text);
+  margin-top: 24px;
+  letter-spacing: 8px;
+  z-index: 3;
+  animation: ink-fade-in 1.2s cubic-bezier(0.19, 1, 0.22, 1) forwards, text-glitch-anim 3.2s infinite alternate linear;
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+@keyframes text-glitch-anim {
+  0%, 100% { text-shadow: 0 0 15px rgb(var(--accent-strong-rgb) / 0.8), -1.5px -1.5px 0 rgba(255, 0, 127, 0.7), 1.5px 1.5px 0 rgba(0, 255, 255, 0.7); }
+  33% { text-shadow: 0 0 22px rgb(var(--accent-strong-rgb) / 0.9), -2.5px 1px 0 rgba(255, 0, 127, 0.8), 2.5px -1px 0 rgba(0, 255, 255, 0.8); }
+  66% { text-shadow: 0 0 15px rgb(var(--accent-strong-rgb) / 0.8), 2px 2px 0 rgba(255, 0, 127, 0.7), -2px -2px 0 rgba(0, 255, 255, 0.7); }
+}
+
+@keyframes ink-fade-in {
+  0% {
+    opacity: 0;
+    filter: blur(10px);
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+  }
+}
+
+.breakthrough-sub-text {
+  font-size: 18px;
+  color: var(--muted);
+  margin-top: 10px;
+  z-index: 3;
+  letter-spacing: 2px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  animation: ink-fade-in 1.5s cubic-bezier(0.19, 1, 0.22, 1) 0.3s forwards;
+  opacity: 0;
+}
+
+.breakthrough-btn {
+  margin-top: 40px;
+  z-index: 3;
+  font-family: system-ui, -apple-system, sans-serif;
+  padding: 10px 24px !important;
+  font-size: 15px !important;
+  animation: ink-fade-in 1.8s cubic-bezier(0.19, 1, 0.22, 1) 0.6s forwards;
+  opacity: 0;
+  box-shadow:
+    0 0 20px rgb(var(--accent-strong-rgb) / 0.45),
+    0 4px 15px rgba(0,0,0,0.4) !important;
+}
+
+.breakthrough-avatar-wrap {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  display: grid;
+  place-items: center;
+}
+
+.breakthrough-rays {
+  position: absolute;
+  inset: -50px;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    rgb(var(--accent-strong-rgb) / 0.15) 30deg,
+    transparent 60deg,
+    rgb(var(--accent-strong-rgb) / 0.15) 120deg,
+    transparent 150deg,
+    rgb(var(--accent-strong-rgb) / 0.15) 210deg,
+    transparent 240deg,
+    rgb(var(--accent-strong-rgb) / 0.15) 300deg,
+    transparent 330deg
+  );
+  border-radius: 50%;
+  mask-image: radial-gradient(circle, white, transparent 70%);
+  -webkit-mask-image: radial-gradient(circle, white, transparent 70%);
+  animation: rotate-spiritual-array 40s linear infinite;
+  pointer-events: none;
+}
+
+/* ==================== 📜 破境古符篆飘落视觉特效 📜 ==================== */
+.breakthrough-talisman {
+  position: absolute;
+  top: -120px;
+  width: 48px;
+  height: 110px;
+  background: linear-gradient(180deg, rgba(230, 185, 93, 0.15), rgba(230, 185, 93, 0.03));
+  border: 1px solid var(--accent-strong);
+  border-radius: 4px;
+  box-shadow:
+    0 0 10px rgb(var(--accent-strong-rgb) / 0.35),
+    inset 0 0 8px rgb(var(--accent-strong-rgb) / 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-strong);
+  font-family: "InkBrushTitle", "Songti SC", serif;
+  font-size: 20px;
+  font-weight: bold;
+  pointer-events: none;
+  user-select: none;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  z-index: 1;
+  animation: fall-and-rotate 7.5s linear infinite;
+  filter: drop-shadow(0 0 5px var(--accent-strong));
+  text-shadow: 0 0 3px var(--accent-strong);
+}
+
+@keyframes fall-and-rotate {
+  0% {
+    transform: translateY(0) rotate(0deg) rotateY(0deg) scale(0.8);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.85;
+  }
+  85% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateY(115vh) rotate(360deg) rotateY(180deg) scale(1.05);
+    opacity: 0;
+  }
+}
+
+/* ==================== 玄牍系统光幕改造 ==================== */
+:root {
+  --bg: #06110f;
+  --surface: rgba(9, 27, 24, 0.76);
+  --surface-strong: rgba(18, 45, 39, 0.82);
+  --surface-soft: rgba(4, 16, 15, 0.62);
+  --line: rgba(127, 247, 206, 0.22);
+  --line-strong: rgba(244, 210, 122, 0.38);
+  --text: #f7f1df;
+  --muted: #aabdb3;
+  --accent: #4fd6ad;
+  --accent-strong: #9dffe0;
+  --accent-rgb: 79 214 173;
+  --accent-strong-rgb: 157 255 224;
+  --gold: #f4d27a;
+  --gold-rgb: 244 210 122;
+  --spirit-blue: #a7f3ff;
+  --spirit-blue-rgb: 167 243 255;
+  --on-accent: #03110d;
+  --danger: #e45a4d;
+  --danger-rgb: 228 90 77;
+  --cinnabar: #e45a4d;
+  --success: #78e8b3;
+  --success-rgb: 120 232 179;
+  --ink-shadow: #020706;
+  --window-control-strip-height: 44px;
+  --system-line: linear-gradient(90deg, transparent, rgb(var(--accent-strong-rgb) / 0.62), rgb(var(--gold-rgb) / 0.36), transparent);
+  --jade-glass:
+    radial-gradient(90% 70% at 14% 4%, rgb(var(--accent-strong-rgb) / 0.16), transparent 58%),
+    radial-gradient(80% 90% at 86% 92%, rgb(var(--gold-rgb) / 0.1), transparent 62%),
+    linear-gradient(180deg, rgba(255,255,255,0.055), rgba(0,0,0,0.18)),
+    var(--surface);
+  --paper-grain: url("data:image/svg+xml,%3Csvg width='180' height='180' viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='.12 0 0 0 0 .08 .14 0 0 0 0 .10 .08 0 0 0 0 0 .26 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.72'/%3E%3Cpath d='M-20 38 C26 8 63 58 108 32 C136 16 160 28 198 7' fill='none' stroke='%237ff7ce' stroke-width='1' opacity='.12'/%3E%3Cpath d='M-14 142 C36 116 68 158 112 130 C140 112 163 126 192 106' fill='none' stroke='%23f4d27a' stroke-width='1' opacity='.11'/%3E%3C/svg%3E");
+  --meander-corner: url("data:image/svg+xml,%3Csvg width='72' height='72' viewBox='0 0 72 72' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9 9h42v8H18v13h38v8H10v24' fill='none' stroke='%239dffe0' stroke-width='2' stroke-linejoin='miter' opacity='.72'/%3E%3Cpath d='M15 15h24M18 30h18M10 62h20' fill='none' stroke='%23f4d27a' stroke-width='1.3' opacity='.56'/%3E%3C/svg%3E");
+}
+
+body {
+  background:
+    radial-gradient(120% 120% at 52% 0%, rgba(38, 96, 80, 0.22), transparent 42%),
+    linear-gradient(135deg, #04100e, #071815 48%, #0a1112);
+}
+
+button,
+input,
+select,
+textarea,
+.path-input-group,
+.resource-actions,
+.actions {
+  -webkit-app-region: no-drag;
+}
+
+input,
+select,
+textarea {
+  border-color: rgb(var(--accent-strong-rgb) / 0.2);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.045), rgb(0 0 0 / 0.12)),
+    rgba(2, 13, 12, 0.62);
+  color: var(--text);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.018),
+    inset 0 -16px 32px rgba(0,0,0,0.12);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(213, 231, 220, 0.46);
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+button:focus-visible {
+  border-color: rgb(var(--accent-strong-rgb) / 0.72);
+  box-shadow:
+    0 0 0 1px rgb(var(--accent-strong-rgb) / 0.26),
+    0 0 18px rgb(var(--accent-strong-rgb) / 0.18);
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(2, 13, 12, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(157,255,224,0.42), rgba(244,210,122,0.3));
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.app-shell {
+  background:
+    radial-gradient(95% 84% at 72% 26%, rgba(58, 142, 116, 0.18), transparent 62%),
+    radial-gradient(86% 96% at 18% 80%, rgba(244, 210, 122, 0.08), transparent 58%),
+    linear-gradient(145deg, #04100e 0%, #071815 52%, #0c1113 100%);
+}
+
+.app-shell::before {
+  background:
+    linear-gradient(90deg, rgba(157,255,224,0.035) 1px, transparent 1px),
+    linear-gradient(rgba(157,255,224,0.028) 1px, transparent 1px),
+    radial-gradient(120% 120% at 50% 35%, transparent 42%, rgba(0, 0, 0, 0.42) 100%),
+    var(--paper-grain);
+  background-size: 64px 64px, 64px 64px, cover, 360px 360px;
+  opacity: 0.94;
+}
+
+.app-shell::after {
+  opacity: 0.2;
+  background:
+    conic-gradient(from 45deg at 76% 62%, transparent 0 18%, rgba(157,255,224,0.18) 19%, transparent 20% 48%, rgba(244,210,122,0.1) 49%, transparent 50%),
+    radial-gradient(circle at 80% 64%, rgb(var(--accent-strong-rgb) / 0.16), transparent 34%);
+  filter: blur(10px);
+}
+
+.spiritual-array-bg {
+  opacity: 0.22;
+}
+
+.spiritual-array-svg {
+  right: -180px;
+  bottom: -260px;
+  width: 820px;
+  height: 820px;
+  color: rgb(var(--accent-strong-rgb) / 0.84);
+  filter: drop-shadow(0 0 18px rgb(var(--accent-strong-rgb) / 0.35));
+}
+
+.sidebar {
+  width: 304px;
+  background:
+    linear-gradient(180deg, rgba(9, 31, 30, 0.86), rgba(4, 16, 19, 0.9)),
+    var(--paper-grain) !important;
+  border-right: 1px solid rgb(var(--accent-strong-rgb) / 0.22) !important;
+  box-shadow:
+    18px 0 42px rgba(0, 0, 0, 0.28),
+    inset -1px 0 0 rgb(var(--gold-rgb) / 0.14);
+  --accent-strong: #b6ffed;
+  --accent-strong-rgb: 182 255 237;
+  --accent: #58dec0;
+  --accent-rgb: 88 222 192;
+  --line-strong: rgba(244, 210, 122, 0.34);
+  --line: rgba(157, 255, 224, 0.18);
+  --text: #f7f1df;
+  --muted: rgba(211, 230, 220, 0.66);
+  --surface-soft: rgba(2, 13, 14, 0.46);
+  --surface-strong: rgba(17, 45, 40, 0.66);
+}
+
+.sidebar::after {
+  position: absolute;
+  top: 0;
+  right: -1px;
+  bottom: 0;
+  width: 1px;
+  content: "";
+  background: linear-gradient(transparent, rgb(var(--accent-strong-rgb) / 0.72), rgb(var(--gold-rgb) / 0.42), transparent);
+  box-shadow: 0 0 16px rgb(var(--accent-strong-rgb) / 0.28);
+}
+
+.sidebar-header {
+  -webkit-app-region: drag;
+  padding: 28px 22px 22px;
+  border-bottom: 1px solid rgb(var(--accent-strong-rgb) / 0.18) !important;
+  background:
+    radial-gradient(100% 90% at 18% 0%, rgba(157,255,224,0.14), transparent 58%),
+    linear-gradient(180deg, rgba(255,255,255,0.045), transparent);
+}
+
+.logo-wrap {
+  gap: 14px;
+}
+
+.logo-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255,255,255,0.88), rgba(157,255,224,0.42) 26%, transparent 27%),
+    radial-gradient(circle, rgba(157,255,224,0.18), rgba(3, 18, 17, 0.62));
+  color: var(--accent-strong);
+  font-size: 24px;
+  text-shadow: 0 0 12px rgb(var(--accent-strong-rgb) / 0.62);
+  box-shadow:
+    0 0 0 1px rgb(var(--accent-strong-rgb) / 0.34),
+    0 0 22px rgb(var(--accent-strong-rgb) / 0.28),
+    inset 0 0 18px rgb(var(--accent-strong-rgb) / 0.18);
+}
+
+.sidebar-header h1,
+.panel-heading h2,
+.hero-panel h2,
+.wukong-profile-header h2 {
+  letter-spacing: 0;
+  text-shadow:
+    0 2px 2px rgba(0,0,0,0.8),
+    0 0 14px rgb(var(--accent-strong-rgb) / 0.2);
+}
+
+.save-status {
+  color: rgba(216, 255, 242, 0.62);
+}
+
+.sidebar-section-header {
+  border-bottom: 1px solid rgb(var(--accent-strong-rgb) / 0.16);
+}
+
+.sidebar-section-header h2,
+.eyebrow {
+  color: var(--gold);
+  text-shadow: 0 0 8px rgb(var(--gold-rgb) / 0.28);
+}
+
+.sidebar-new-project-panel,
+.list-item,
+.hero-panel,
+.detail-panel,
+.resource-row,
+.wukong-profile-panel,
+.modal,
+.toast,
+.pending-strip {
+  border-radius: 8px;
+  border-image: none !important;
+  clip-path: polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px));
+}
+
+.list-item {
+  border-color: rgb(var(--accent-strong-rgb) / 0.16);
+  background:
+    linear-gradient(90deg, rgba(157,255,224,0.075), transparent 32%),
+    rgba(3, 18, 18, 0.48);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.018);
+}
+
+.list-item::before {
+  width: 100%;
+  height: 1px;
+  right: 0;
+  bottom: auto;
+  background: transparent;
+}
+
+.list-item:hover {
+  border-color: rgb(var(--accent-strong-rgb) / 0.44) !important;
+  background:
+    linear-gradient(90deg, rgb(var(--accent-strong-rgb) / 0.12), rgba(244,210,122,0.055) 48%, transparent),
+    rgba(5, 25, 23, 0.7) !important;
+  box-shadow: 0 0 18px rgb(var(--accent-strong-rgb) / 0.1);
+}
+
+.list-item.active {
+  border-color: rgb(var(--accent-strong-rgb) / 0.68) !important;
+  background:
+    linear-gradient(90deg, rgb(var(--accent-strong-rgb) / 0.22), rgba(244,210,122,0.12) 56%, rgba(2,12,11,0.42)),
+    var(--surface-strong) !important;
+  box-shadow:
+    inset 0 0 18px rgb(var(--accent-strong-rgb) / 0.08),
+    0 0 20px rgb(var(--accent-strong-rgb) / 0.18) !important;
+}
+
+.list-item.active::before {
+  background: var(--system-line) !important;
+}
+
+.project-dot,
+.log-dot {
+  color: var(--accent-strong);
+  text-shadow: 0 0 8px rgb(var(--accent-strong-rgb) / 0.66);
+}
+
+.content-area {
+  background: linear-gradient(180deg, rgba(4, 13, 12, 0.08), rgba(2, 9, 9, 0.24));
+  box-sizing: border-box;
+  padding-top: var(--window-control-strip-height);
+  position: relative;
+  isolation: isolate;
+}
+
+.content-area::before {
+  position: absolute;
+  inset: var(--window-control-strip-height) 0 0 0;
+  z-index: 0;
+  pointer-events: none;
+  content: var(--realm-stage-mark);
+  display: grid;
+  place-items: center end;
+  padding-right: clamp(32px, 8vw, 128px);
+  font-family: "InkBrushTitle", "Songti SC", serif;
+  font-size: clamp(180px, 24vw, 420px);
+  font-weight: 900;
+  line-height: 1;
+  color: rgb(var(--accent-strong-rgb) / 0.09);
+  text-shadow:
+    0 0 54px rgb(var(--accent-strong-rgb) / 0.22),
+    0 0 120px rgb(var(--accent-rgb) / 0.12);
+  mix-blend-mode: screen;
+}
+
+.content-area > * {
+  position: relative;
+  z-index: 1;
+}
+
+.content-header {
+  -webkit-app-region: drag;
+  position: relative;
+  top: auto;
+  flex-shrink: 0;
+  height: 56px;
+  padding: 0 28px;
+  background:
+    linear-gradient(180deg, rgba(8, 23, 21, 0.78), rgba(5, 17, 16, 0.5)),
+    linear-gradient(90deg, rgb(var(--accent-strong-rgb) / 0.08), transparent 44%, rgb(var(--gold-rgb) / 0.06));
+  border-bottom: 1px solid rgb(var(--accent-strong-rgb) / 0.18);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.18),
+    inset 0 -1px 0 rgb(var(--gold-rgb) / 0.12);
+}
+
+.content-header::after {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: -1px;
+  height: 1px;
+  content: "";
+  background: var(--system-line);
+  opacity: 0.66;
+}
+
+.breadcrumb {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.breadcrumb .muted {
+  color: rgba(235, 245, 236, 0.72);
+}
+
+.breadcrumb strong {
+  color: var(--accent-strong);
+  max-width: min(56vw, 680px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.content-header > div:last-child {
+  flex-shrink: 0;
+}
+
+.content-body {
+  padding: 28px 28px 30px;
+  gap: 24px;
+}
+
+.content-grid {
+  grid-template-columns: minmax(0, 1.76fr) minmax(294px, 0.78fr);
+  gap: 28px;
+}
+
+.main-column {
+  gap: 24px;
+}
+
+.hero-panel,
+.detail-panel,
+.wukong-profile-panel {
+  overflow: hidden;
+  border-color: rgb(var(--accent-strong-rgb) / 0.34);
+  background: var(--jade-glass);
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, 0.28),
+    inset 0 0 0 1px rgba(255,255,255,0.025),
+    inset 0 0 42px rgb(var(--accent-strong-rgb) / 0.045);
+}
+
+.hero-panel::before,
+.detail-panel::before,
+.wukong-profile-panel::before,
+.modal::before {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 0;
+  width: 50px;
+  height: 50px;
+  pointer-events: none;
+  content: "";
+  background-image: var(--meander-corner);
+  background-repeat: no-repeat;
+  background-size: contain;
+  opacity: 0.54;
+}
+
+.hero-panel::after,
+.detail-panel::after,
+.wukong-profile-panel::after,
+.modal::after {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  left: auto;
+  top: auto;
+  z-index: 0;
+  width: 50px;
+  height: 50px;
+  pointer-events: none;
+  content: "";
+  background-image: var(--meander-corner);
+  background-repeat: no-repeat;
+  background-size: contain;
+  opacity: 0.42;
+  transform: rotate(180deg);
+}
+
+.hero-panel > *,
+.detail-panel > *,
+.wukong-profile-panel > *,
+.modal > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-panel h2 {
+  font-size: clamp(24px, 2.4vw, 34px);
+  line-height: 1.38;
+}
+
+.hero-panel .eyebrow::before,
+.panel-heading .eyebrow::before,
+.wukong-profile-header h2::before,
+.wukong-profile-header h2::after {
+  color: var(--accent-strong);
+  text-shadow: 0 0 10px rgb(var(--accent-strong-rgb) / 0.45);
+}
+
+.hero-panel .eyebrow::before,
+.panel-heading .eyebrow::before {
+  content: "【 ";
+}
+
+.hero-panel .eyebrow::after,
+.panel-heading .eyebrow::after {
+  content: " 】";
+}
+
+.hero-panel .next-action,
+.resource-row .next-action {
+  border-left: 2px solid rgb(var(--accent-strong-rgb) / 0.72);
+  background:
+    linear-gradient(90deg, rgb(var(--accent-strong-rgb) / 0.11), rgba(244,210,122,0.045) 62%, transparent),
+    rgba(0, 0, 0, 0.16);
+  color: rgba(247, 241, 223, 0.9);
+}
+
+.detail-panel {
+  padding: 22px;
+}
+
+.panel-heading {
+  border-bottom: 1px solid rgb(var(--accent-strong-rgb) / 0.17);
+}
+
+.panel-heading::after,
+.wukong-profile-header::after {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  content: "";
+  background: var(--system-line);
+  opacity: 0.5;
+}
+
+.resource-form {
+  border-color: rgb(var(--gold-rgb) / 0.2);
+  background:
+    linear-gradient(135deg, rgba(244,210,122,0.055), transparent 42%),
+    rgba(0, 0, 0, 0.16);
+}
+
+.resource-row {
+  overflow: hidden;
+  border-color: rgb(var(--accent-strong-rgb) / 0.18);
+  background:
+    linear-gradient(90deg, rgb(var(--accent-strong-rgb) / 0.06), transparent 34%),
+    linear-gradient(180deg, rgba(255,255,255,0.026), rgba(0,0,0,0.16)),
+    rgba(3, 17, 16, 0.62);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.016),
+    0 8px 24px rgba(0,0,0,0.14);
+}
+
+.resource-row::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  content: "";
+  background: linear-gradient(transparent, rgb(var(--accent-strong-rgb) / 0.64), rgb(var(--gold-rgb) / 0.42), transparent);
+  opacity: 0.72;
+}
+
+.resource-row::after {
+  border-color: transparent;
+}
+
+.resource-row:hover {
+  background:
+    linear-gradient(90deg, rgb(var(--accent-strong-rgb) / 0.11), rgba(244,210,122,0.065) 54%, transparent),
+    rgba(5, 24, 22, 0.76);
+  box-shadow:
+    0 14px 30px rgba(0,0,0,0.22),
+    0 0 18px rgb(var(--accent-strong-rgb) / 0.1);
+}
+
+.resource-row:hover::after {
+  border-color: rgb(var(--accent-strong-rgb) / 0.36);
+  box-shadow: inset 0 0 20px rgb(var(--accent-strong-rgb) / 0.06);
+}
+
+.resource-row h3 {
+  line-height: 1.36;
+}
+
+.resource-badge {
+  border-color: rgb(var(--gold-rgb) / 0.34);
+  background: rgba(244, 210, 122, 0.1);
+  color: var(--gold);
+}
+
+.resource-badge.document {
+  border-color: rgb(var(--accent-strong-rgb) / 0.34);
+  background: rgb(var(--accent-strong-rgb) / 0.08);
+  color: var(--accent-strong);
+}
+
+.resource-actions {
+  border-top: 1px solid rgb(var(--accent-strong-rgb) / 0.12);
+}
+
+.wukong-profile-panel {
+  position: sticky;
+  top: 18px;
+  min-width: 0;
+}
+
+.wukong-profile-header {
+  position: relative;
+  border-bottom: 1px solid rgb(var(--gold-rgb) / 0.18);
+}
+
+.wukong-profile-header h2 {
+  color: var(--accent-strong);
+}
+
+.wukong-stat-group-header {
+  border-left: 2px solid rgb(var(--accent-strong-rgb) / 0.72);
+  border-radius: 0 4px 4px 0;
+  background:
+    linear-gradient(90deg, rgb(var(--accent-strong-rgb) / 0.13), rgba(244,210,122,0.07) 50%, transparent);
+  color: var(--gold);
+}
+
+.wukong-stat-item:hover,
+.wukong-log-item:hover {
+  background: rgb(var(--accent-strong-rgb) / 0.055);
+}
+
+.stat-divider {
+  border-bottom-color: rgba(244, 210, 122, 0.24);
+}
+
+.stat-value {
+  color: var(--accent-strong);
+  text-shadow: 0 0 8px rgb(var(--accent-strong-rgb) / 0.36);
+}
+
+.wukong-log-item {
+  border-color: rgb(var(--accent-strong-rgb) / 0.15);
+  background: rgba(0,0,0,0.18);
+}
+
+.primary-button,
+.secondary-button,
+.ghost-button,
+.danger-button,
+.icon-button {
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.primary-button {
+  border-color: rgb(var(--accent-strong-rgb) / 0.66);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.44), transparent 20%),
+    linear-gradient(135deg, #bffff0 0%, #5be2bc 42%, #2b9d81 68%, #795f25 100%);
+  color: #03110d;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.28),
+    inset 0 -14px 22px rgba(20, 66, 54, 0.28),
+    0 0 18px rgb(var(--accent-strong-rgb) / 0.18);
+}
+
+.primary-button::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(100deg, transparent 0 34%, rgba(255,255,255,0.35) 48%, transparent 62% 100%);
+  transform: translateX(-120%);
+  transition: transform 420ms ease-out;
+}
+
+.primary-button:hover::after {
+  transform: translateX(120%);
+}
+
+.secondary-button {
+  border-color: rgb(var(--gold-rgb) / 0.28);
+  background:
+    linear-gradient(180deg, rgba(244,210,122,0.11), rgba(0,0,0,0.05)),
+    rgba(12, 35, 31, 0.62);
+  color: #f7f1df;
+}
+
+.ghost-button,
+.icon-button {
+  border-color: rgb(var(--accent-strong-rgb) / 0.22);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.035), transparent),
+    rgba(2, 13, 12, 0.36);
+}
+
+.secondary-button:hover,
+.ghost-button:hover,
+.icon-button:hover {
+  border-color: rgb(var(--accent-strong-rgb) / 0.62);
+  color: var(--accent-strong);
+  background: rgba(23, 58, 50, 0.64);
+  box-shadow: 0 0 18px rgb(var(--accent-strong-rgb) / 0.14);
+}
+
+.danger-button {
+  border-color: rgba(228, 90, 77, 0.42);
+  background:
+    linear-gradient(180deg, rgba(228,90,77,0.16), rgba(0,0,0,0.08)),
+    rgba(38, 12, 10, 0.54);
+  color: #ffd3cf;
+}
+
+.danger-button:hover {
+  border-color: rgba(255, 120, 104, 0.78);
+  background: rgba(74, 20, 16, 0.72);
+}
+
+.progress-wrap {
+  height: 20px;
+  border-color: rgb(var(--accent-strong-rgb) / 0.32);
+  background:
+    linear-gradient(90deg, rgba(157,255,224,0.06), transparent),
+    rgba(1, 10, 10, 0.74);
+  box-shadow:
+    inset 0 0 10px rgba(0,0,0,0.72),
+    0 0 12px rgb(var(--accent-strong-rgb) / 0.1);
+}
+
+.progress-wrap span {
+  background:
+    linear-gradient(90deg, #b9ffe9 0%, var(--accent-strong) 38%, var(--accent) 68%, var(--gold) 100%) !important;
+  box-shadow:
+    0 0 16px rgb(var(--accent-strong-rgb) / 0.34),
+    inset 0 1px 0 rgba(255,255,255,0.42) !important;
+}
+
+.pending-strip {
+  border-color: rgb(var(--gold-rgb) / 0.36);
+  background:
+    linear-gradient(90deg, rgba(244,210,122,0.13), rgba(157,255,224,0.08), rgba(0,0,0,0.12)),
+    rgba(7, 23, 21, 0.72);
+}
+
+.toast {
+  border-color: rgb(var(--accent-strong-rgb) / 0.25);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.16)),
+    rgba(7, 24, 22, 0.92);
+}
+
+.modal-backdrop {
+  background:
+    radial-gradient(circle at center, rgba(49, 113, 91, 0.22), transparent 46%),
+    rgba(2, 7, 7, 0.78);
+}
+
+.modal {
+  border-color: rgb(var(--accent-strong-rgb) / 0.36);
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgb(var(--accent-strong-rgb) / 0.12), transparent 58%),
+    linear-gradient(180deg, rgba(255,255,255,0.045), rgba(0,0,0,0.2)),
+    rgba(5, 21, 19, 0.96);
+}
+
+.detail-list div {
+  border-color: rgb(var(--accent-strong-rgb) / 0.18);
+  background: rgba(1, 12, 11, 0.42);
+}
+
+.path-picker-btn {
+  border-color: rgb(var(--gold-rgb) / 0.26);
+  background: rgba(14, 39, 34, 0.66);
+}
+
+.theme-lianqi {
+  --accent-strong: #9dffe0;
+  --accent-strong-rgb: 157 255 224;
+  --accent: #4fd6ad;
+  --accent-rgb: 79 214 173;
+  --line-strong: rgba(157,255,224,0.38);
+  --accent-gradient: linear-gradient(135deg, #effff9, #9dffe0, #4fd6ad);
+}
+
+.theme-zhuji {
+  --accent-strong: #a7f3ff;
+  --accent-strong-rgb: 167 243 255;
+  --accent: #5db7d8;
+  --accent-rgb: 93 183 216;
+  --line-strong: rgba(167,243,255,0.4);
+  --accent-gradient: linear-gradient(135deg, #effcff, #a7f3ff, #5db7d8);
+}
+
+.theme-jindan {
+  --accent-strong: #f4d27a;
+  --accent-strong-rgb: 244 210 122;
+  --accent: #d9a642;
+  --accent-rgb: 217 166 66;
+  --line-strong: rgba(244,210,122,0.44);
+  --accent-gradient: linear-gradient(135deg, #fff7cf, #f4d27a, #d9a642);
+}
+
+.theme-yuanying {
+  --accent-strong: #d7c8ff;
+  --accent-strong-rgb: 215 200 255;
+  --accent: #9d83ea;
+  --accent-rgb: 157 131 234;
+  --line-strong: rgba(215,200,255,0.42);
+  --accent-gradient: linear-gradient(135deg, #fff8ff, #d7c8ff, #9d83ea);
+}
+
+.theme-huashen {
+  --accent-strong: #f7f1df;
+  --accent-strong-rgb: 247 241 223;
+  --accent: #b8d7cc;
+  --accent-rgb: 184 215 204;
+  --line-strong: rgba(247,241,223,0.42);
+  --accent-gradient: linear-gradient(135deg, #ffffff, #f7f1df, #b8d7cc);
+}
+
+@supports (height: env(titlebar-area-height)) {
+  .content-area {
+    padding-top: max(40px, env(titlebar-area-height, 44px));
+  }
+}
+
+
+
+@media (max-width: 720px) {
+  .content-body {
+    padding: 20px 16px 24px;
+  }
+
+  .content-header {
+    height: auto;
+    min-height: 64px;
+    padding: 10px 16px;
+  }
+
+  .hero-panel,
+  .detail-panel,
+  .wukong-profile-panel {
+    padding: 18px;
+  }
+
+  .hero-panel .actions,
+  .pending-strip {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .hero-panel .actions button,
+  .pending-strip button {
+    width: 100%;
+  }
+}
+
+/* ==================== 境界差异强化 ==================== */
+.app-shell {
+  --realm-stage-mark: "炼";
+  --realm-bg-field:
+    radial-gradient(72% 88% at 18% 16%, rgba(89, 237, 184, 0.18), transparent 58%),
+    radial-gradient(82% 92% at 86% 82%, rgba(244, 210, 122, 0.08), transparent 62%),
+    linear-gradient(135deg, #031210 0%, #071d18 54%, #091113 100%);
+  --realm-grid:
+    linear-gradient(90deg, rgba(157, 255, 224, 0.04) 1px, transparent 1px),
+    linear-gradient(rgba(157, 255, 224, 0.035) 1px, transparent 1px);
+  --realm-panel-bg:
+    radial-gradient(100% 82% at 14% 0%, rgb(var(--accent-strong-rgb) / 0.2), transparent 58%),
+    linear-gradient(140deg, rgb(var(--accent-strong-rgb) / 0.09), transparent 34%),
+    rgba(7, 29, 25, 0.78);
+  --realm-sidebar-bg:
+    radial-gradient(88% 80% at 14% 0%, rgba(157, 255, 224, 0.16), transparent 56%),
+    linear-gradient(180deg, rgba(7, 32, 29, 0.92), rgba(2, 14, 15, 0.96));
+  --realm-header-bg:
+    linear-gradient(180deg, rgba(7, 28, 25, 0.86), rgba(4, 16, 15, 0.62)),
+    linear-gradient(90deg, rgb(var(--accent-strong-rgb) / 0.1), transparent 42%, rgb(var(--gold-rgb) / 0.06));
+  --realm-progress: linear-gradient(90deg, #dffff5, var(--accent-strong), var(--accent), var(--gold));
+  --realm-rim: rgb(var(--accent-strong-rgb) / 0.36);
+  --realm-line: rgb(var(--accent-strong-rgb) / 0.18);
+  --realm-side-accent: var(--accent-strong);
+  --realm-panel-clip: polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px));
+  --realm-particle: var(--accent-strong);
+  --realm-array-opacity: 0.22;
+}
+
+.theme-lianqi {
+  --realm-stage-mark: "气";
+  --accent-strong: #8fffd4;
+  --accent-strong-rgb: 143 255 212;
+  --accent: #3ed49f;
+  --accent-rgb: 62 212 159;
+  --gold: #f1d580;
+  --gold-rgb: 241 213 128;
+  --line-strong: rgba(143, 255, 212, 0.48);
+  --accent-gradient: linear-gradient(135deg, #f1fff9, #8fffd4, #3ed49f);
+  --realm-bg-field:
+    radial-gradient(88% 78% at 16% 12%, rgba(72, 231, 157, 0.2), transparent 58%),
+    radial-gradient(64% 74% at 88% 80%, rgba(241, 213, 128, 0.08), transparent 64%),
+    linear-gradient(135deg, #031512 0%, #08251c 58%, #071113 100%);
+  --realm-grid:
+    linear-gradient(110deg, rgba(143, 255, 212, 0.06) 1px, transparent 1px),
+    radial-gradient(circle at 20% 20%, rgba(143, 255, 212, 0.08) 0 1px, transparent 2px);
+  --realm-panel-bg:
+    radial-gradient(110% 78% at 12% 0%, rgba(143, 255, 212, 0.23), transparent 58%),
+    linear-gradient(135deg, rgba(62, 212, 159, 0.11), rgba(241, 213, 128, 0.045) 68%, transparent),
+    rgba(7, 30, 24, 0.78);
+  --realm-sidebar-bg:
+    radial-gradient(86% 78% at 18% 0%, rgba(143, 255, 212, 0.22), transparent 58%),
+    linear-gradient(180deg, rgba(8, 38, 29, 0.94), rgba(2, 18, 16, 0.98));
+  --realm-header-bg:
+    linear-gradient(180deg, rgba(9, 35, 28, 0.9), rgba(5, 18, 16, 0.62)),
+    linear-gradient(90deg, rgba(143, 255, 212, 0.12), transparent 42%, rgba(241, 213, 128, 0.07));
+  --realm-progress: linear-gradient(90deg, #dffff5, #8fffd4 40%, #3ed49f 72%, #f1d580);
+  --realm-particle: #8fffd4;
+  --realm-array-opacity: 0.22;
+}
+
+.theme-zhuji {
+  --realm-stage-mark: "基";
+  --accent-strong: #9de8ff;
+  --accent-strong-rgb: 157 232 255;
+  --accent: #4fa9e6;
+  --accent-rgb: 79 169 230;
+  --gold: #d7edf4;
+  --gold-rgb: 215 237 244;
+  --line-strong: rgba(157, 232, 255, 0.52);
+  --accent-gradient: linear-gradient(135deg, #f4fdff, #9de8ff, #4fa9e6);
+  --realm-bg-field:
+    radial-gradient(70% 92% at 16% 12%, rgba(80, 170, 232, 0.24), transparent 58%),
+    radial-gradient(72% 88% at 86% 78%, rgba(157, 232, 255, 0.12), transparent 62%),
+    linear-gradient(135deg, #03111b 0%, #08283a 54%, #061014 100%);
+  --realm-grid:
+    linear-gradient(60deg, rgba(157, 232, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(120deg, rgba(157, 232, 255, 0.05) 1px, transparent 1px);
+  --realm-panel-bg:
+    linear-gradient(130deg, rgba(157, 232, 255, 0.22), transparent 31%),
+    linear-gradient(45deg, transparent 0 42%, rgba(157, 232, 255, 0.055) 43% 44%, transparent 45%),
+    rgba(5, 24, 35, 0.82);
+  --realm-sidebar-bg:
+    radial-gradient(86% 78% at 16% 0%, rgba(157, 232, 255, 0.2), transparent 58%),
+    linear-gradient(180deg, rgba(6, 32, 48, 0.94), rgba(2, 14, 20, 0.98));
+  --realm-header-bg:
+    linear-gradient(180deg, rgba(8, 34, 48, 0.9), rgba(5, 18, 23, 0.64)),
+    linear-gradient(90deg, rgba(157, 232, 255, 0.14), transparent 44%, rgba(215, 237, 244, 0.07));
+  --realm-progress: linear-gradient(90deg, #effcff, #9de8ff 42%, #4fa9e6 74%, #d7edf4);
+  --realm-panel-clip: polygon(0 14px, 14px 0, calc(100% - 20px) 0, 100% 20px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 20px 100%, 0 calc(100% - 20px));
+  --realm-particle: #9de8ff;
+  --realm-array-opacity: 0.28;
+}
+
+.theme-jindan {
+  --realm-stage-mark: "丹";
+  --accent-strong: #ffd36b;
+  --accent-strong-rgb: 255 211 107;
+  --accent: #d98f24;
+  --accent-rgb: 217 143 36;
+  --gold: #ffe7a3;
+  --gold-rgb: 255 231 163;
+  --line-strong: rgba(255, 211, 107, 0.56);
+  --accent-gradient: linear-gradient(135deg, #fff7d7, #ffd36b, #d98f24);
+  --realm-bg-field:
+    radial-gradient(circle at 50% 28%, rgba(255, 211, 107, 0.22), transparent 28%),
+    radial-gradient(82% 86% at 82% 78%, rgba(217, 143, 36, 0.18), transparent 64%),
+    linear-gradient(135deg, #170d05 0%, #2d1808 48%, #08120f 100%);
+  --realm-grid:
+    repeating-radial-gradient(circle at 50% 34%, rgba(255, 211, 107, 0.11) 0 1px, transparent 2px 44px),
+    conic-gradient(from 0deg at 50% 34%, transparent 0 14%, rgba(255, 211, 107, 0.06) 15%, transparent 16% 30%);
+  --realm-panel-bg:
+    radial-gradient(circle at 50% 0%, rgba(255, 211, 107, 0.24), transparent 40%),
+    linear-gradient(135deg, rgba(255, 211, 107, 0.14), rgba(217, 143, 36, 0.065) 54%, transparent),
+    rgba(31, 19, 8, 0.82);
+  --realm-sidebar-bg:
+    radial-gradient(84% 76% at 18% 0%, rgba(255, 211, 107, 0.2), transparent 58%),
+    linear-gradient(180deg, rgba(42, 24, 8, 0.94), rgba(12, 12, 9, 0.98));
+  --realm-header-bg:
+    linear-gradient(180deg, rgba(42, 24, 8, 0.9), rgba(16, 14, 10, 0.66)),
+    linear-gradient(90deg, rgba(255, 211, 107, 0.16), transparent 44%, rgba(217, 143, 36, 0.1));
+  --realm-progress: linear-gradient(90deg, #fff7d7, #ffd36b 36%, #ffae34 68%, #d98f24);
+  --realm-panel-clip: polygon(0 8px, 8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px));
+  --realm-particle: #ffd36b;
+  --realm-array-opacity: 0.34;
+}
+
+.theme-yuanying {
+  --realm-stage-mark: "婴";
+  --accent-strong: #d7c2ff;
+  --accent-strong-rgb: 215 194 255;
+  --accent: #9b78f1;
+  --accent-rgb: 155 120 241;
+  --gold: #ffd1f0;
+  --gold-rgb: 255 209 240;
+  --line-strong: rgba(215, 194, 255, 0.54);
+  --accent-gradient: linear-gradient(135deg, #fff7ff, #d7c2ff, #9b78f1);
+  --realm-bg-field:
+    radial-gradient(72% 88% at 18% 12%, rgba(155, 120, 241, 0.23), transparent 58%),
+    radial-gradient(60% 72% at 84% 74%, rgba(255, 209, 240, 0.12), transparent 62%),
+    linear-gradient(135deg, #10071f 0%, #22123f 52%, #071014 100%);
+  --realm-grid:
+    radial-gradient(circle at 16% 22%, rgba(215, 194, 255, 0.22) 0 1px, transparent 2px),
+    radial-gradient(circle at 72% 64%, rgba(255, 209, 240, 0.18) 0 1px, transparent 2px),
+    linear-gradient(135deg, rgba(215, 194, 255, 0.04) 1px, transparent 1px);
+  --realm-panel-bg:
+    radial-gradient(86% 82% at 18% 4%, rgba(215, 194, 255, 0.22), transparent 58%),
+    radial-gradient(50% 60% at 88% 78%, rgba(255, 209, 240, 0.12), transparent 68%),
+    rgba(20, 12, 38, 0.84);
+  --realm-sidebar-bg:
+    radial-gradient(86% 78% at 18% 0%, rgba(215, 194, 255, 0.19), transparent 58%),
+    linear-gradient(180deg, rgba(27, 15, 50, 0.94), rgba(10, 8, 20, 0.98));
+  --realm-header-bg:
+    linear-gradient(180deg, rgba(28, 17, 49, 0.9), rgba(12, 10, 23, 0.66)),
+    linear-gradient(90deg, rgba(215, 194, 255, 0.14), transparent 44%, rgba(255, 209, 240, 0.09));
+  --realm-progress: linear-gradient(90deg, #fff7ff, #d7c2ff 36%, #9b78f1 70%, #ffd1f0);
+  --realm-panel-clip: polygon(0 16px, 16px 0, calc(100% - 16px) 0, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0 calc(100% - 16px));
+  --realm-particle: #d7c2ff;
+  --realm-array-opacity: 0.3;
+}
+
+.theme-huashen {
+  --realm-stage-mark: "神";
+  --accent-strong: #f6fff8;
+  --accent-strong-rgb: 246 255 248;
+  --accent: #b8d7cc;
+  --accent-rgb: 184 215 204;
+  --gold: #d8fff2;
+  --gold-rgb: 216 255 242;
+  --line-strong: rgba(246, 255, 248, 0.48);
+  --accent-gradient: linear-gradient(135deg, #ffffff, #f6fff8, #b8d7cc);
+  --realm-bg-field:
+    radial-gradient(86% 90% at 50% 18%, rgba(246, 255, 248, 0.16), transparent 54%),
+    radial-gradient(72% 80% at 82% 80%, rgba(184, 215, 204, 0.11), transparent 62%),
+    linear-gradient(135deg, #071111 0%, #101817 50%, #050808 100%);
+  --realm-grid:
+    linear-gradient(90deg, rgba(246, 255, 248, 0.045) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(246, 255, 248, 0.035) 1px, transparent 1px),
+    radial-gradient(circle at 50% 30%, rgba(246, 255, 248, 0.12), transparent 24%);
+  --realm-panel-bg:
+    radial-gradient(90% 80% at 50% 0%, rgba(246, 255, 248, 0.16), transparent 56%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(0, 0, 0, 0.16)),
+    rgba(11, 20, 19, 0.74);
+  --realm-sidebar-bg:
+    radial-gradient(86% 78% at 18% 0%, rgba(246, 255, 248, 0.15), transparent 58%),
+    linear-gradient(180deg, rgba(18, 28, 26, 0.94), rgba(4, 8, 8, 0.98));
+  --realm-header-bg:
+    linear-gradient(180deg, rgba(20, 29, 28, 0.92), rgba(8, 12, 12, 0.68)),
+    linear-gradient(90deg, rgba(246, 255, 248, 0.12), transparent 44%, rgba(184, 215, 204, 0.08));
+  --realm-progress: linear-gradient(90deg, #ffffff, #f6fff8 38%, #d8fff2 68%, #b8d7cc);
+  --realm-panel-clip: polygon(0 4px, 4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px));
+  --realm-particle: #f6fff8;
+  --realm-array-opacity: 0.18;
+}
+
+.app-shell.theme-lianqi,
+.app-shell.theme-zhuji,
+.app-shell.theme-jindan,
+.app-shell.theme-yuanying,
+.app-shell.theme-huashen {
+  background: var(--realm-bg-field);
+}
+
+.app-shell.theme-lianqi::before,
+.app-shell.theme-zhuji::before,
+.app-shell.theme-jindan::before,
+.app-shell.theme-yuanying::before,
+.app-shell.theme-huashen::before {
+  background:
+    var(--realm-grid),
+    radial-gradient(120% 120% at 50% 35%, transparent 42%, rgba(0, 0, 0, 0.42) 100%),
+    var(--paper-grain);
+  background-size: 74px 74px, 74px 74px, cover, 360px 360px;
+  opacity: 0.98;
+}
+
+.app-shell.theme-lianqi::after,
+.app-shell.theme-zhuji::after,
+.app-shell.theme-jindan::after,
+.app-shell.theme-yuanying::after,
+.app-shell.theme-huashen::after {
+  content: var(--realm-stage-mark);
+  display: grid;
+  place-items: center;
+  font-family: "InkBrushTitle", "Songti SC", serif;
+  font-size: clamp(260px, 28vw, 460px);
+  font-weight: 900;
+  color: rgb(var(--accent-strong-rgb) / 0.035);
+  text-shadow: 0 0 70px rgb(var(--accent-strong-rgb) / 0.16);
+  background:
+    radial-gradient(circle at 74% 58%, rgb(var(--accent-strong-rgb) / 0.14), transparent 33%),
+    radial-gradient(circle at 22% 20%, rgb(var(--gold-rgb) / 0.08), transparent 24%);
+  filter: none;
+  opacity: 1;
+}
+
+.app-shell.theme-lianqi .sidebar,
+.app-shell.theme-zhuji .sidebar,
+.app-shell.theme-jindan .sidebar,
+.app-shell.theme-yuanying .sidebar,
+.app-shell.theme-huashen .sidebar {
+  --accent-strong: var(--realm-side-accent);
+  --accent-strong-rgb: inherit;
+  background: var(--realm-sidebar-bg), var(--paper-grain) !important;
+  border-right-color: var(--realm-rim) !important;
+}
+
+.app-shell.theme-lianqi .sidebar { --realm-side-accent: #8fffd4; --accent-strong-rgb: 143 255 212; --accent: #3ed49f; --accent-rgb: 62 212 159; }
+.app-shell.theme-zhuji .sidebar { --realm-side-accent: #9de8ff; --accent-strong-rgb: 157 232 255; --accent: #4fa9e6; --accent-rgb: 79 169 230; }
+.app-shell.theme-jindan .sidebar { --realm-side-accent: #ffd36b; --accent-strong-rgb: 255 211 107; --accent: #d98f24; --accent-rgb: 217 143 36; }
+.app-shell.theme-yuanying .sidebar { --realm-side-accent: #d7c2ff; --accent-strong-rgb: 215 194 255; --accent: #9b78f1; --accent-rgb: 155 120 241; }
+.app-shell.theme-huashen .sidebar { --realm-side-accent: #f6fff8; --accent-strong-rgb: 246 255 248; --accent: #b8d7cc; --accent-rgb: 184 215 204; }
+
+.app-shell.theme-lianqi .content-header,
+.app-shell.theme-zhuji .content-header,
+.app-shell.theme-jindan .content-header,
+.app-shell.theme-yuanying .content-header,
+.app-shell.theme-huashen .content-header {
+  background: var(--realm-header-bg);
+  border-bottom-color: var(--realm-line);
+}
+
+.app-shell.theme-lianqi .content-area::before { content: "气"; }
+.app-shell.theme-zhuji .content-area::before { content: "基"; }
+.app-shell.theme-jindan .content-area::before { content: "丹"; }
+.app-shell.theme-yuanying .content-area::before { content: "婴"; }
+.app-shell.theme-huashen .content-area::before { content: "神"; }
+
+.app-shell.theme-zhuji .content-area::before {
+  color: rgba(157, 232, 255, 0.12);
+  transform: skewX(-8deg);
+}
+
+.app-shell.theme-jindan .content-area::before {
+  color: rgba(255, 211, 107, 0.13);
+  text-shadow:
+    0 0 48px rgba(255, 211, 107, 0.28),
+    0 0 140px rgba(217, 143, 36, 0.16);
+}
+
+.app-shell.theme-yuanying .content-area::before {
+  color: rgba(215, 194, 255, 0.13);
+  transform: rotate(-4deg);
+  text-shadow:
+    0 0 58px rgba(215, 194, 255, 0.28),
+    0 0 140px rgba(255, 209, 240, 0.14);
+}
+
+.app-shell.theme-huashen .content-area::before {
+  color: rgba(246, 255, 248, 0.1);
+  filter: blur(0.4px);
+}
+
+.app-shell.theme-lianqi .hero-panel,
+.app-shell.theme-lianqi .detail-panel,
+.app-shell.theme-lianqi .wukong-profile-panel,
+.app-shell.theme-lianqi .resource-row,
+.app-shell.theme-zhuji .hero-panel,
+.app-shell.theme-zhuji .detail-panel,
+.app-shell.theme-zhuji .wukong-profile-panel,
+.app-shell.theme-zhuji .resource-row,
+.app-shell.theme-jindan .hero-panel,
+.app-shell.theme-jindan .detail-panel,
+.app-shell.theme-jindan .wukong-profile-panel,
+.app-shell.theme-jindan .resource-row,
+.app-shell.theme-yuanying .hero-panel,
+.app-shell.theme-yuanying .detail-panel,
+.app-shell.theme-yuanying .wukong-profile-panel,
+.app-shell.theme-yuanying .resource-row,
+.app-shell.theme-huashen .hero-panel,
+.app-shell.theme-huashen .detail-panel,
+.app-shell.theme-huashen .wukong-profile-panel,
+.app-shell.theme-huashen .resource-row {
+  clip-path: var(--realm-panel-clip);
+  border-color: var(--realm-rim);
+  background: var(--realm-panel-bg);
+}
+
+.app-shell.theme-lianqi .progress-wrap span,
+.app-shell.theme-zhuji .progress-wrap span,
+.app-shell.theme-jindan .progress-wrap span,
+.app-shell.theme-yuanying .progress-wrap span,
+.app-shell.theme-huashen .progress-wrap span {
+  background: var(--realm-progress) !important;
+}
+
+.app-shell.theme-lianqi .spiritual-array-bg,
+.app-shell.theme-zhuji .spiritual-array-bg,
+.app-shell.theme-jindan .spiritual-array-bg,
+.app-shell.theme-yuanying .spiritual-array-bg,
+.app-shell.theme-huashen .spiritual-array-bg {
+  opacity: var(--realm-array-opacity);
+}
+
+.app-shell.theme-lianqi .spiritual-particle,
+.app-shell.theme-zhuji .spiritual-particle,
+.app-shell.theme-jindan .spiritual-particle,
+.app-shell.theme-yuanying .spiritual-particle,
+.app-shell.theme-huashen .spiritual-particle {
+  background: var(--realm-particle) !important;
+  box-shadow: 0 0 12px var(--realm-particle) !important;
+}
+
+.app-shell.theme-zhuji .spiritual-array-svg {
+  width: 900px;
+  height: 900px;
+  filter: drop-shadow(0 0 22px rgb(var(--accent-strong-rgb) / 0.46));
+}
+
+.app-shell.theme-jindan .spiritual-array-svg {
+  width: 700px;
+  height: 700px;
+  right: -120px;
+  bottom: -190px;
+  filter: drop-shadow(0 0 34px rgb(var(--accent-strong-rgb) / 0.48));
+}
+
+.app-shell.theme-yuanying .spiritual-array-svg {
+  width: 960px;
+  height: 960px;
+  right: -260px;
+  bottom: -310px;
+  filter: drop-shadow(0 0 26px rgb(var(--accent-strong-rgb) / 0.48));
+}
+
+.app-shell.theme-huashen .spiritual-array-svg {
+  width: 840px;
+  height: 840px;
+  filter: drop-shadow(0 0 18px rgba(246, 255, 248, 0.28));
+}
+
+.app-shell.theme-jindan .primary-button {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.42), transparent 20%),
+    linear-gradient(135deg, #fff1b8 0%, #ffd36b 42%, #d98f24 78%, #6d3d10 100%);
+}
+
+.app-shell.theme-yuanying .primary-button {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.36), transparent 20%),
+    linear-gradient(135deg, #fff7ff 0%, #d7c2ff 40%, #9b78f1 74%, #4d2e92 100%);
+}
+
+.app-shell.theme-zhuji .primary-button {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.4), transparent 20%),
+    linear-gradient(135deg, #effcff 0%, #9de8ff 42%, #4fa9e6 72%, #205a91 100%);
+}
+
+.app-shell.theme-huashen .primary-button {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.46), transparent 20%),
+    linear-gradient(135deg, #ffffff 0%, #f6fff8 38%, #d8fff2 72%, #93afa6 100%);
+}
+
+.app-shell.theme-jindan .wukong-stat-group-header,
+.app-shell.theme-jindan .eyebrow,
+.app-shell.theme-yuanying .wukong-stat-group-header,
+.app-shell.theme-yuanying .eyebrow,
+.app-shell.theme-huashen .wukong-stat-group-header,
+.app-shell.theme-huashen .eyebrow {
+  color: var(--gold);
+}
+
+/* ==================== 境界丰富色板优化 ==================== */
+.app-shell {
+  --realm-primary-rgb: var(--accent-strong-rgb);
+  --realm-secondary-rgb: 244 210 122;
+  --realm-tertiary-rgb: 167 243 255;
+  --realm-metal-rgb: 247 241 223;
+  --realm-deep-rgb: 4 18 16;
+  --realm-warm-rgb: 244 210 122;
+  --realm-button:
+    linear-gradient(180deg, rgba(255,255,255,0.42), transparent 22%),
+    linear-gradient(135deg, rgb(var(--realm-metal-rgb)) 0%, rgb(var(--realm-primary-rgb)) 42%, rgb(var(--accent-rgb)) 72%, rgb(var(--realm-secondary-rgb)) 100%);
+  --realm-soft-highlight:
+    radial-gradient(80% 74% at 12% 0%, rgb(var(--realm-primary-rgb) / 0.24), transparent 58%),
+    radial-gradient(72% 82% at 88% 18%, rgb(var(--realm-secondary-rgb) / 0.14), transparent 62%),
+    radial-gradient(64% 82% at 78% 92%, rgb(var(--realm-tertiary-rgb) / 0.1), transparent 66%);
+}
+
+.theme-lianqi {
+  --realm-primary-rgb: 143 255 212;
+  --realm-secondary-rgb: 241 213 128;
+  --realm-tertiary-rgb: 112 210 255;
+  --realm-metal-rgb: 226 255 242;
+  --realm-deep-rgb: 4 30 24;
+  --realm-warm-rgb: 241 213 128;
+  --gold: #f1d580;
+  --gold-rgb: 241 213 128;
+  --realm-bg-field:
+    radial-gradient(88% 78% at 16% 12%, rgba(72, 231, 157, 0.22), transparent 58%),
+    radial-gradient(66% 74% at 88% 80%, rgba(241, 213, 128, 0.12), transparent 64%),
+    radial-gradient(54% 62% at 78% 18%, rgba(112, 210, 255, 0.1), transparent 68%),
+    linear-gradient(135deg, #031512 0%, #08251c 58%, #071113 100%);
+  --realm-grid:
+    linear-gradient(110deg, rgba(143, 255, 212, 0.065) 1px, transparent 1px),
+    radial-gradient(circle at 20% 20%, rgba(241, 213, 128, 0.1) 0 1px, transparent 2px),
+    radial-gradient(circle at 76% 62%, rgba(112, 210, 255, 0.07) 0 1px, transparent 2px);
+  --realm-progress: linear-gradient(90deg, #e5fff7, #8fffd4 34%, #70d2ff 60%, #f1d580 100%);
+  --realm-button:
+    linear-gradient(180deg, rgba(255,255,255,0.42), transparent 22%),
+    linear-gradient(135deg, #effff9 0%, #8fffd4 38%, #3ed49f 68%, #d7be70 100%);
+  --realm-particle: #b5ffe8;
+}
+
+.theme-zhuji {
+  --realm-primary-rgb: 157 232 255;
+  --realm-secondary-rgb: 104 236 201;
+  --realm-tertiary-rgb: 116 128 255;
+  --realm-metal-rgb: 224 245 255;
+  --realm-deep-rgb: 4 24 36;
+  --realm-warm-rgb: 215 237 244;
+  --gold: #d7edf4;
+  --gold-rgb: 215 237 244;
+  --realm-bg-field:
+    radial-gradient(70% 92% at 16% 12%, rgba(80, 170, 232, 0.26), transparent 58%),
+    radial-gradient(72% 88% at 86% 78%, rgba(104, 236, 201, 0.12), transparent 62%),
+    radial-gradient(58% 60% at 78% 20%, rgba(116, 128, 255, 0.13), transparent 68%),
+    linear-gradient(135deg, #03111b 0%, #08283a 54%, #061014 100%);
+  --realm-grid:
+    linear-gradient(60deg, rgba(157, 232, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(120deg, rgba(104, 236, 201, 0.055) 1px, transparent 1px),
+    radial-gradient(circle at 74% 22%, rgba(116, 128, 255, 0.11) 0 1px, transparent 2px);
+  --realm-progress: linear-gradient(90deg, #f4fdff, #9de8ff 34%, #68ecc9 58%, #7480ff 100%);
+  --realm-button:
+    linear-gradient(180deg, rgba(255,255,255,0.4), transparent 22%),
+    linear-gradient(135deg, #f4fdff 0%, #9de8ff 38%, #4fa9e6 68%, #68ecc9 100%);
+  --realm-particle: #9de8ff;
+}
+
+.theme-jindan {
+  --realm-primary-rgb: 255 211 107;
+  --realm-secondary-rgb: 226 91 61;
+  --realm-tertiary-rgb: 112 217 163;
+  --realm-metal-rgb: 255 239 190;
+  --realm-deep-rgb: 42 20 6;
+  --realm-warm-rgb: 217 143 36;
+  --gold: #ffe7a3;
+  --gold-rgb: 255 231 163;
+  --realm-bg-field:
+    radial-gradient(circle at 50% 28%, rgba(255, 211, 107, 0.24), transparent 28%),
+    radial-gradient(82% 86% at 82% 78%, rgba(226, 91, 61, 0.15), transparent 64%),
+    radial-gradient(58% 70% at 18% 82%, rgba(112, 217, 163, 0.1), transparent 66%),
+    linear-gradient(135deg, #170d05 0%, #2d1808 48%, #08120f 100%);
+  --realm-grid:
+    repeating-radial-gradient(circle at 50% 34%, rgba(255, 211, 107, 0.12) 0 1px, transparent 2px 44px),
+    conic-gradient(from 0deg at 50% 34%, transparent 0 13%, rgba(226, 91, 61, 0.08) 14%, transparent 16% 30%),
+    radial-gradient(circle at 18% 78%, rgba(112, 217, 163, 0.08) 0 1px, transparent 2px);
+  --realm-progress: linear-gradient(90deg, #fff7d7, #ffd36b 34%, #e25b3d 62%, #70d9a3 100%);
+  --realm-button:
+    linear-gradient(180deg, rgba(255,255,255,0.42), transparent 20%),
+    linear-gradient(135deg, #fff1b8 0%, #ffd36b 38%, #d98f24 66%, #e25b3d 100%);
+  --realm-particle: #ffd36b;
+}
+
+.theme-yuanying {
+  --realm-primary-rgb: 215 194 255;
+  --realm-secondary-rgb: 99 196 255;
+  --realm-tertiary-rgb: 255 180 226;
+  --realm-metal-rgb: 255 247 255;
+  --realm-deep-rgb: 20 12 38;
+  --realm-warm-rgb: 255 209 240;
+  --gold: #ffd1f0;
+  --gold-rgb: 255 209 240;
+  --realm-bg-field:
+    radial-gradient(72% 88% at 18% 12%, rgba(155, 120, 241, 0.25), transparent 58%),
+    radial-gradient(60% 72% at 84% 74%, rgba(99, 196, 255, 0.14), transparent 62%),
+    radial-gradient(56% 62% at 74% 18%, rgba(255, 180, 226, 0.14), transparent 66%),
+    linear-gradient(135deg, #10071f 0%, #22123f 52%, #071014 100%);
+  --realm-grid:
+    radial-gradient(circle at 16% 22%, rgba(215, 194, 255, 0.24) 0 1px, transparent 2px),
+    radial-gradient(circle at 72% 64%, rgba(99, 196, 255, 0.16) 0 1px, transparent 2px),
+    radial-gradient(circle at 84% 18%, rgba(255, 180, 226, 0.16) 0 1px, transparent 2px),
+    linear-gradient(135deg, rgba(215, 194, 255, 0.045) 1px, transparent 1px);
+  --realm-progress: linear-gradient(90deg, #fff7ff, #d7c2ff 34%, #63c4ff 60%, #ffb4e2 100%);
+  --realm-button:
+    linear-gradient(180deg, rgba(255,255,255,0.36), transparent 20%),
+    linear-gradient(135deg, #fff7ff 0%, #d7c2ff 36%, #9b78f1 68%, #63c4ff 100%);
+  --realm-particle: #d7c2ff;
+}
+
+.theme-huashen {
+  --realm-primary-rgb: 246 255 248;
+  --realm-secondary-rgb: 154 231 224;
+  --realm-tertiary-rgb: 229 207 148;
+  --realm-metal-rgb: 255 255 255;
+  --realm-deep-rgb: 11 20 19;
+  --realm-warm-rgb: 229 207 148;
+  --gold: #e5cf94;
+  --gold-rgb: 229 207 148;
+  --realm-bg-field:
+    radial-gradient(86% 90% at 50% 18%, rgba(246, 255, 248, 0.17), transparent 54%),
+    radial-gradient(72% 80% at 82% 80%, rgba(154, 231, 224, 0.12), transparent 62%),
+    radial-gradient(48% 62% at 18% 78%, rgba(229, 207, 148, 0.08), transparent 66%),
+    linear-gradient(135deg, #071111 0%, #101817 50%, #050808 100%);
+  --realm-grid:
+    linear-gradient(90deg, rgba(246, 255, 248, 0.045) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(154, 231, 224, 0.04) 1px, transparent 1px),
+    radial-gradient(circle at 50% 30%, rgba(229, 207, 148, 0.09), transparent 24%);
+  --realm-progress: linear-gradient(90deg, #ffffff, #f6fff8 34%, #9ae7e0 64%, #e5cf94 100%);
+  --realm-button:
+    linear-gradient(180deg, rgba(255,255,255,0.46), transparent 20%),
+    linear-gradient(135deg, #ffffff 0%, #f6fff8 36%, #9ae7e0 68%, #e5cf94 100%);
+  --realm-particle: #f6fff8;
+}
+
+.app-shell.theme-lianqi,
+.app-shell.theme-zhuji,
+.app-shell.theme-jindan,
+.app-shell.theme-yuanying,
+.app-shell.theme-huashen {
+  --system-line: linear-gradient(
+    90deg,
+    transparent,
+    rgb(var(--realm-primary-rgb) / 0.58),
+    rgb(var(--realm-secondary-rgb) / 0.46),
+    rgb(var(--realm-tertiary-rgb) / 0.38),
+    transparent
+  );
+}
+
+.app-shell.theme-lianqi .hero-panel,
+.app-shell.theme-lianqi .detail-panel,
+.app-shell.theme-lianqi .wukong-profile-panel,
+.app-shell.theme-lianqi .resource-row,
+.app-shell.theme-zhuji .hero-panel,
+.app-shell.theme-zhuji .detail-panel,
+.app-shell.theme-zhuji .wukong-profile-panel,
+.app-shell.theme-zhuji .resource-row,
+.app-shell.theme-jindan .hero-panel,
+.app-shell.theme-jindan .detail-panel,
+.app-shell.theme-jindan .wukong-profile-panel,
+.app-shell.theme-jindan .resource-row,
+.app-shell.theme-yuanying .hero-panel,
+.app-shell.theme-yuanying .detail-panel,
+.app-shell.theme-yuanying .wukong-profile-panel,
+.app-shell.theme-yuanying .resource-row,
+.app-shell.theme-huashen .hero-panel,
+.app-shell.theme-huashen .detail-panel,
+.app-shell.theme-huashen .wukong-profile-panel,
+.app-shell.theme-huashen .resource-row {
+  background:
+    var(--realm-soft-highlight),
+    linear-gradient(160deg, rgb(var(--realm-tertiary-rgb) / 0.045), transparent 34%),
+    linear-gradient(180deg, rgba(255,255,255,0.052), rgba(0,0,0,0.18)),
+    rgb(var(--realm-deep-rgb) / 0.78);
+  box-shadow:
+    0 18px 46px rgba(0, 0, 0, 0.28),
+    0 0 28px rgb(var(--realm-primary-rgb) / 0.09),
+    inset 0 0 0 1px rgba(255,255,255,0.026),
+    inset 0 0 46px rgb(var(--realm-secondary-rgb) / 0.045);
+}
+
+.app-shell.theme-lianqi .sidebar,
+.app-shell.theme-zhuji .sidebar,
+.app-shell.theme-jindan .sidebar,
+.app-shell.theme-yuanying .sidebar,
+.app-shell.theme-huashen .sidebar {
+  background:
+    radial-gradient(74% 72% at 12% 0%, rgb(var(--realm-primary-rgb) / 0.18), transparent 58%),
+    radial-gradient(68% 72% at 88% 16%, rgb(var(--realm-secondary-rgb) / 0.11), transparent 64%),
+    linear-gradient(180deg, rgb(var(--realm-deep-rgb) / 0.94), rgba(2, 10, 10, 0.98)),
+    var(--paper-grain) !important;
+}
+
+.app-shell.theme-lianqi .content-header,
+.app-shell.theme-zhuji .content-header,
+.app-shell.theme-jindan .content-header,
+.app-shell.theme-yuanying .content-header,
+.app-shell.theme-huashen .content-header {
+  background:
+    linear-gradient(180deg, rgb(var(--realm-deep-rgb) / 0.88), rgba(4, 16, 15, 0.62)),
+    linear-gradient(90deg, rgb(var(--realm-primary-rgb) / 0.12), transparent 42%, rgb(var(--realm-secondary-rgb) / 0.08), rgb(var(--realm-tertiary-rgb) / 0.05));
+}
+
+.app-shell.theme-lianqi .primary-button,
+.app-shell.theme-zhuji .primary-button,
+.app-shell.theme-jindan .primary-button,
+.app-shell.theme-yuanying .primary-button,
+.app-shell.theme-huashen .primary-button {
+  background: var(--realm-button);
+}
+
+.app-shell.theme-lianqi .secondary-button,
+.app-shell.theme-zhuji .secondary-button,
+.app-shell.theme-jindan .secondary-button,
+.app-shell.theme-yuanying .secondary-button,
+.app-shell.theme-huashen .secondary-button {
+  border-color: rgb(var(--realm-secondary-rgb) / 0.36);
+  background:
+    linear-gradient(180deg, rgb(var(--realm-secondary-rgb) / 0.14), rgb(var(--realm-primary-rgb) / 0.045)),
+    rgb(var(--realm-deep-rgb) / 0.62);
+}
+
+.app-shell.theme-lianqi .ghost-button,
+.app-shell.theme-lianqi .icon-button,
+.app-shell.theme-zhuji .ghost-button,
+.app-shell.theme-zhuji .icon-button,
+.app-shell.theme-jindan .ghost-button,
+.app-shell.theme-jindan .icon-button,
+.app-shell.theme-yuanying .ghost-button,
+.app-shell.theme-yuanying .icon-button,
+.app-shell.theme-huashen .ghost-button,
+.app-shell.theme-huashen .icon-button {
+  border-color: rgb(var(--realm-primary-rgb) / 0.24);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.035), rgb(var(--realm-tertiary-rgb) / 0.035)),
+    rgb(var(--realm-deep-rgb) / 0.42);
+}
+
+.app-shell.theme-lianqi input,
+.app-shell.theme-lianqi select,
+.app-shell.theme-lianqi textarea,
+.app-shell.theme-zhuji input,
+.app-shell.theme-zhuji select,
+.app-shell.theme-zhuji textarea,
+.app-shell.theme-jindan input,
+.app-shell.theme-jindan select,
+.app-shell.theme-jindan textarea,
+.app-shell.theme-yuanying input,
+.app-shell.theme-yuanying select,
+.app-shell.theme-yuanying textarea,
+.app-shell.theme-huashen input,
+.app-shell.theme-huashen select,
+.app-shell.theme-huashen textarea {
+  border-color: rgb(var(--realm-primary-rgb) / 0.22);
+  background:
+    linear-gradient(135deg, rgb(var(--realm-tertiary-rgb) / 0.052), transparent 46%),
+    linear-gradient(180deg, rgba(255,255,255,0.044), rgba(0,0,0,0.12)),
+    rgb(var(--realm-deep-rgb) / 0.58);
+}
+
+.app-shell.theme-lianqi .resource-form,
+.app-shell.theme-zhuji .resource-form,
+.app-shell.theme-jindan .resource-form,
+.app-shell.theme-yuanying .resource-form,
+.app-shell.theme-huashen .resource-form {
+  border-color: rgb(var(--realm-secondary-rgb) / 0.24);
+  background:
+    radial-gradient(72% 90% at 10% 0%, rgb(var(--realm-secondary-rgb) / 0.1), transparent 58%),
+    radial-gradient(72% 90% at 92% 100%, rgb(var(--realm-tertiary-rgb) / 0.07), transparent 64%),
+    rgb(var(--realm-deep-rgb) / 0.28);
+}
+
+.app-shell.theme-lianqi .resource-badge,
+.app-shell.theme-zhuji .resource-badge,
+.app-shell.theme-jindan .resource-badge,
+.app-shell.theme-yuanying .resource-badge,
+.app-shell.theme-huashen .resource-badge {
+  border-color: rgb(var(--realm-secondary-rgb) / 0.44);
+  background:
+    linear-gradient(90deg, rgb(var(--realm-secondary-rgb) / 0.16), rgb(var(--realm-primary-rgb) / 0.07));
+  color: rgb(var(--realm-metal-rgb));
+}
+
+.app-shell.theme-lianqi .wukong-stat-group-header,
+.app-shell.theme-zhuji .wukong-stat-group-header,
+.app-shell.theme-jindan .wukong-stat-group-header,
+.app-shell.theme-yuanying .wukong-stat-group-header,
+.app-shell.theme-huashen .wukong-stat-group-header {
+  border-left-color: rgb(var(--realm-primary-rgb) / 0.78);
+  background:
+    linear-gradient(90deg, rgb(var(--realm-primary-rgb) / 0.14), rgb(var(--realm-secondary-rgb) / 0.1) 48%, rgb(var(--realm-tertiary-rgb) / 0.05), transparent);
+  color: rgb(var(--realm-metal-rgb));
+}
+
+.app-shell.theme-lianqi .stat-divider,
+.app-shell.theme-zhuji .stat-divider,
+.app-shell.theme-jindan .stat-divider,
+.app-shell.theme-yuanying .stat-divider,
+.app-shell.theme-huashen .stat-divider {
+  border-bottom-color: rgb(var(--realm-secondary-rgb) / 0.26);
+}
+
+.app-shell.theme-lianqi .modal,
+.app-shell.theme-zhuji .modal,
+.app-shell.theme-jindan .modal,
+.app-shell.theme-yuanying .modal,
+.app-shell.theme-huashen .modal {
+  border-color: rgb(var(--realm-primary-rgb) / 0.38);
+  background:
+    radial-gradient(100% 76% at 50% 0%, rgb(var(--realm-primary-rgb) / 0.13), transparent 56%),
+    radial-gradient(72% 70% at 92% 16%, rgb(var(--realm-secondary-rgb) / 0.1), transparent 62%),
+    linear-gradient(180deg, rgba(255,255,255,0.045), rgba(0,0,0,0.2)),
+    rgb(var(--realm-deep-rgb) / 0.96);
+}
+
+.app-shell.theme-lianqi .content-area::before,
+.app-shell.theme-zhuji .content-area::before,
+.app-shell.theme-jindan .content-area::before,
+.app-shell.theme-yuanying .content-area::before,
+.app-shell.theme-huashen .content-area::before {
+  color: rgb(var(--realm-primary-rgb) / 0.105);
+  text-shadow:
+    0 0 54px rgb(var(--realm-primary-rgb) / 0.22),
+    0 0 120px rgb(var(--realm-secondary-rgb) / 0.14),
+    0 0 170px rgb(var(--realm-tertiary-rgb) / 0.1);
 }

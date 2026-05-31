@@ -1,60 +1,59 @@
-import { BookOpen, Check, CircleAlert, FilePlus2, FolderPlus, Pencil, Play, RefreshCcw, Save, Trash2, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { BookOpen, Play, RefreshCcw } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 
 import type {
   GetEnumsOutput,
   GetHomeOverviewOutput,
+  GetProjectCultivationOutput,
   GetProjectDetailOutput,
-  IpcResult,
   PendingSessionView,
   ResourceDetail,
   ResourceSummary,
   SaveStudyLogOutput,
 } from '../shared/dto';
-import type { OpenKind, ResourceStatus, ResourceType } from '../shared/enums';
-import { normalizeProgressPercent } from '../shared/progress';
+import type { CultivationRole, OpenKind, ResourceStatus, ResourceType } from '../shared/enums';
+import { ConfirmDialog } from './components/ConfirmDialog';
+import { ProgressBar } from './components/ProgressBar';
+import { ProjectEditModal } from './features/projects/ProjectEditModal';
+import { ProjectSidebar } from './features/projects/ProjectSidebar';
+import { ProjectStatsPanel } from './features/projects/ProjectStatsPanel';
+import { ResourceDetailModal } from './features/resources/ResourceDetailModal';
+import { ResourceEditModal } from './features/resources/ResourceEditModal';
+import { ResourceManagementPanel } from './features/resources/ResourceManagementPanel';
+import { PendingConflictModal } from './features/studyLogs/PendingConflictModal';
+import { PendingStrip } from './features/studyLogs/PendingStrip';
+import { StudyLogModal } from './features/studyLogs/StudyLogModal';
+import { ToastStack } from './components/ToastStack';
+import { BreakthroughOverlay } from './components/BreakthroughOverlay';
+import { run, showError } from './lib/actionRunner';
+import { feedbackMessage } from './lib/feedback';
+import { unwrap, unwrapResult } from './lib/ipc';
+import type { ConfirmRequest, LogDraft, ProjectEditDraft, ResourceEditDraft, Toast, ToastInput } from './types';
 
-type ToastInput = { kind: 'success' | 'error'; message: string };
-type Toast = ToastInput & { id: string };
-type LogDraft = {
-  resource: ResourceSummary;
-  source: 'pending' | 'record_only' | 'manual';
-  resource_updated_at_before: string;
-  before_progress_percent: number;
-  progress_text: string;
-  progress_percent: string;
-  status: ResourceStatus;
-  statusChangedByUser: boolean;
-  progressChangedByStatus: boolean;
-  next_action: string;
+export { ProgressBar } from './components/ProgressBar';
+
+type ParticleStyle = CSSProperties & {
+  '--drift-x': string;
 };
-type ResourceEditDraft = {
-  id: string;
-  title: string;
-  type: ResourceType;
-  open_kind: OpenKind;
-  path_or_url: string;
-  status: '' | Extract<ResourceStatus, 'learning' | 'review' | 'paused'>;
-};
-type ProjectEditDraft = { id: string; name: string };
-type ConfirmRequest = {
-  title: string;
-  message: string;
-  confirmLabel: string;
-  cancelLabel?: string;
-  danger?: boolean;
-  resolve: (confirmed: boolean) => void;
-};
+
+function stableUnit(index: number, salt: number): number {
+  const value = Math.sin((index + 1) * (salt + 19.19)) * 10000;
+  return value - Math.floor(value);
+}
 
 export function App() {
   const [overview, setOverview] = useState<GetHomeOverviewOutput | null>(null);
   const [enums, setEnums] = useState<GetEnumsOutput | null>(null);
   const [projectDetail, setProjectDetail] = useState<GetProjectDetailOutput | null>(null);
+  const [projectCultivation, setProjectCultivation] = useState<GetProjectCultivationOutput | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [resourceTitle, setResourceTitle] = useState('');
   const [resourceType, setResourceType] = useState<ResourceType>('document');
+  const [cultivationRole, setCultivationRole] = useState<CultivationRole>('core');
+  const [masteryGroup, setMasteryGroup] = useState('');
+  const [masteryWeight, setMasteryWeight] = useState('1');
   const [openKind, setOpenKind] = useState<OpenKind>('record_only');
   const [pathOrUrl, setPathOrUrl] = useState('');
   const [initialProgress, setInitialProgress] = useState('0');
@@ -68,16 +67,65 @@ export function App() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [busy, setBusy] = useState(false);
   const [showNewProject, setShowNewProject] = useState(false);
+  const [breakthroughData, setBreakthroughData] = useState<{ resourceTitle: string; stageName: string } | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const anyModalOpenRef = useRef(false);
+  const busyRef = useRef(false);
+  const autoOpenedPendingIdsRef = useRef<Set<string>>(new Set());
 
   const selectedProject = useMemo(
     () => overview?.projects.find((project) => project.id === selectedProjectId) ?? overview?.projects[0] ?? null,
     [overview, selectedProjectId],
   );
+
+  const stageClass = useMemo(() => {
+    if (!selectedProject) return 'theme-lianqi';
+    if (selectedProject.realm_rank <= 0) return 'theme-lianqi';
+    if (selectedProject.realm_rank === 1) return 'theme-zhuji';
+    if (selectedProject.realm_rank === 2) return 'theme-jindan';
+    if (selectedProject.realm_rank === 3) return 'theme-yuanying';
+    return 'theme-huashen';
+  }, [selectedProject]);
+
+  const stageName = useMemo(() => {
+    if (!selectedProject) return '未入门';
+    const layer = projectCultivation?.realm_layer ?? selectedProject.realm_layer;
+    return `${selectedProject.realm_name}${layer}层`;
+  }, [projectCultivation?.realm_layer, selectedProject]);
+
+  const particles = useMemo(() => {
+    const colors = [
+      'var(--accent-strong)',
+      'rgba(98, 195, 158, 0.75)',  // Emerald Green
+      'rgba(230, 185, 93, 0.75)',   // Pure Gold
+      'rgba(177, 159, 251, 0.75)',  // Astral Purple
+      'rgba(93, 164, 230, 0.75)',   // Celestial Blue
+    ];
+    return Array.from({ length: 18 }).map((_, i) => ({
+      id: i,
+      left: `${stableUnit(i, 1) * 95}%`,
+      delay: `${stableUnit(i, 2) * 8}s`,
+      duration: `${6 + stableUnit(i, 3) * 6}s`,
+      size: `${3 + stableUnit(i, 4) * 4}px`,
+      driftX: `${-65 + stableUnit(i, 5) * 130}px`,
+      color: colors[i % colors.length]
+    }));
+  }, []);
+
   const resourceTypes = enums?.resource_type ?? [];
   const openKinds = enums?.open_kind ?? [];
   const resourceStatuses = enums?.resource_status ?? [];
+  const cultivationRoles = enums?.cultivation_role ?? [];
+  const evidenceTypes = enums?.study_evidence_type ?? [];
   const anyModalOpen = Boolean(logDraft || resourceEdit || projectEdit || resourceDetail || pendingConflict || confirmRequest);
+
+  useEffect(() => {
+    anyModalOpenRef.current = anyModalOpen;
+  }, [anyModalOpen]);
+
+  useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
 
   const showToast = useCallback((toast: ToastInput) => {
     setToasts((current) => [...current, { ...toast, id: globalThis.crypto.randomUUID() }]);
@@ -111,9 +159,15 @@ export function App() {
   const loadProject = useCallback(async (projectId: string | null) => {
     if (!projectId) {
       setProjectDetail(null);
+      setProjectCultivation(null);
       return;
     }
-    setProjectDetail(await unwrap(window.api.get_project_detail(projectId)));
+    const [detail, cultivation] = await Promise.all([
+      window.api.get_project_detail(projectId).then(unwrapResult),
+      window.api.get_project_cultivation(projectId).then(unwrapResult),
+    ]);
+    setProjectDetail(detail);
+    setProjectCultivation(cultivation);
   }, []);
 
   const refresh = useCallback(async () => {
@@ -159,11 +213,14 @@ export function App() {
   useEffect(() => {
     let cancelled = false;
     const projectId = selectedProject?.id ?? null;
-    const detailPromise = projectId ? window.api.get_project_detail(projectId).then(unwrapResult) : Promise.resolve(null);
+    const detailPromise = projectId
+      ? Promise.all([window.api.get_project_detail(projectId).then(unwrapResult), window.api.get_project_cultivation(projectId).then(unwrapResult)])
+      : Promise.resolve([null, null] as const);
     detailPromise
-      .then((data) => {
+      .then(([detail, cultivation]) => {
         if (!cancelled) {
-          setProjectDetail(data);
+          setProjectDetail(detail);
+          setProjectCultivation(cultivation);
         }
       })
       .catch((error: unknown) => {
@@ -203,12 +260,18 @@ export function App() {
           type: resourceType,
           open_kind: openKind,
           path_or_url: openKind === 'record_only' ? null : pathOrUrl,
+          cultivation_role: cultivationRole,
+          mastery_group: masteryGroup || null,
+          mastery_weight: Number(masteryWeight),
           initial_progress_percent: Number(initialProgress),
           initial_next_action: initialNextAction || null,
         }),
       );
       setResourceTitle('');
       setPathOrUrl('');
+      setCultivationRole('core');
+      setMasteryGroup('');
+      setMasteryWeight('1');
       setInitialProgress('0');
       setInitialNextAction('');
       await refresh();
@@ -261,20 +324,74 @@ export function App() {
     });
   }
 
-  async function openPendingLog(pending: PendingSessionView) {
-    const detail = await unwrap(window.api.get_resource_detail(pending.resource_id));
+  const openPendingLog = useCallback(async (pending: PendingSessionView) => {
+    let session = pending;
+    if (!session.closed_at) {
+      session = await unwrap(window.api.close_pending_session(pending.id, 'user_ended'));
+    }
+
+    const detail = await unwrap(window.api.get_resource_detail(session.resource_id));
     setPendingConflict(null);
     setLogDraft({
       resource: detail,
       source: 'pending',
-      resource_updated_at_before: pending.resource_updated_at_before,
-      before_progress_percent: pending.progress_before_percent,
+      resource_updated_at_before: session.resource_updated_at_before,
+      before_progress_percent: session.progress_before_percent,
       progress_text: detail.progress_text ?? '',
       progress_percent: String(detail.progress_percent),
       status: detail.status,
       statusChangedByUser: false,
       progressChangedByStatus: false,
       next_action: detail.next_action ?? '',
+      duration_minutes: session.duration_minutes === null ? '' : String(session.duration_minutes),
+      evidence_type: '',
+      duration_hint:
+        session.close_source === 'viewer_closed'
+          ? '已根据资料窗口打开到关闭时间记录，可修改。'
+          : '已根据打开资料到结束闭关时间记录，可修改。',
+    });
+  }, []);
+
+  useEffect(() => {
+    return window.api.on_pending_session_closed((pending) => {
+      void (async () => {
+        await refresh();
+        if (busyRef.current || anyModalOpenRef.current || autoOpenedPendingIdsRef.current.has(pending.id)) {
+          return;
+        }
+        autoOpenedPendingIdsRef.current.add(pending.id);
+        await openPendingLog(pending);
+      })().catch((error: unknown) => {
+        showError(showToast, error);
+      });
+    });
+  }, [openPendingLog, refresh, showToast]);
+
+  async function pickPath(kind: 'file' | 'folder', isEdit: boolean) {
+    await run(setBusy, showToast, async () => {
+      const result = await window.api.select_local_file({
+        properties: kind === 'file' ? ['openFile'] : ['openDirectory'],
+      });
+      if (result.ok && result.data) {
+        if (isEdit) {
+          setResourceEdit((current) => {
+            if (!current) {
+              return current;
+            }
+            const fileName = result.data!.split(/[\\/]/).pop() ?? '';
+            return {
+              ...current,
+              path_or_url: result.data!,
+              title: current.title === '' ? fileName : current.title,
+            };
+          });
+        } else {
+          setPathOrUrl(result.data);
+          const fileName = result.data.split(/[\\/]/).pop() ?? '';
+          setResourceTitle((current) => (current === '' ? fileName : current));
+        }
+        showToast({ kind: 'success', message: `已成功选择本地${kind === 'file' ? '文件' : '文件夹'}。` });
+      }
     });
   }
 
@@ -295,30 +412,25 @@ export function App() {
       statusChangedByUser: false,
       progressChangedByStatus: false,
       next_action: resource.next_action ?? '',
+      duration_minutes: '',
+      evidence_type: '',
     });
   }
 
   function changeLogStatus(status: ResourceStatus) {
-    if (status === 'completed') {
-      showToast({ kind: 'success', message: '进度将设为 100%。' });
-    } else if (status === 'not_started') {
-      showToast({ kind: 'success', message: '进度将设为 0%。' });
-    }
-
     setLogDraft((current) => {
       if (!current) {
         return current;
       }
 
-      if (status === 'completed') {
-        return { ...current, status, statusChangedByUser: true, progress_percent: '100', progressChangedByStatus: true };
-      }
-
-      if (status === 'not_started') {
-        return { ...current, status, statusChangedByUser: true, progress_percent: '0', progressChangedByStatus: true };
-      }
-
-      return { ...current, status, statusChangedByUser: true, progressChangedByStatus: false };
+      const progressByStatus = status === 'completed' ? '100' : status === 'not_started' ? '0' : current.progress_percent;
+      return {
+        ...current,
+        status,
+        statusChangedByUser: true,
+        progressChangedByStatus: status === 'completed' || status === 'not_started' ? true : current.progressChangedByStatus,
+        progress_percent: progressByStatus,
+      };
     });
   }
 
@@ -346,6 +458,9 @@ export function App() {
         open_kind: detail.open_kind,
         path_or_url: detail.path_or_url_raw ?? '',
         status: detail.status === 'learning' || detail.status === 'review' || detail.status === 'paused' ? detail.status : '',
+        cultivation_role: detail.cultivation_role,
+        mastery_group: detail.mastery_group ?? '',
+        mastery_weight: String(detail.mastery_weight),
       });
     });
   }
@@ -369,6 +484,9 @@ export function App() {
           type: resourceEdit.type,
           open_kind: resourceEdit.open_kind,
           path_or_url: resourceEdit.open_kind === 'record_only' ? null : resourceEdit.path_or_url,
+          cultivation_role: resourceEdit.cultivation_role,
+          mastery_group: resourceEdit.mastery_group || null,
+          mastery_weight: Number(resourceEdit.mastery_weight),
           ...(resourceEdit.status ? { status: resourceEdit.status } : {}),
         }),
       );
@@ -388,13 +506,15 @@ export function App() {
       const input = {
         resource_id: logDraft.resource.id,
         source: logDraft.source,
-        progress_text: logDraft.progress_text || null,
+        progress_text: logDraft.progress_text,
         progress_percent: Number(logDraft.progress_percent),
-        ...(logDraft.statusChangedByUser ? { status: logDraft.status } : {}),
+        status: logDraft.status,
         next_action: logDraft.next_action || null,
+        duration_minutes: logDraft.duration_minutes === '' ? null : Number(logDraft.duration_minutes),
+        evidence_type: logDraft.evidence_type || null,
         resource_updated_at_before: logDraft.resource_updated_at_before,
       };
-      if (input.progress_percent < logDraft.before_progress_percent && !logDraft.progressChangedByStatus) {
+      if (input.progress_percent < logDraft.before_progress_percent) {
         const confirmed = await askConfirm({
           title: '确认进度回退',
           message: `本次参悟进度将从 ${logDraft.before_progress_percent}% 调整到 ${input.progress_percent}%。`,
@@ -409,7 +529,7 @@ export function App() {
       if (!response.ok && response.error.details?.conflict === true) {
         const confirmed = await askConfirm({
           title: '资料已变化',
-          message: '资料在打开记录后发生过变化。确认覆盖表示用当前弹窗里的进度、状态和下一步保存。',
+          message: '资料在打开记录后发生过变化。确认覆盖表示用当前弹窗里的进度、状态、证据和下一步保存。',
           confirmLabel: '确认覆盖',
         });
         if (confirmed) {
@@ -420,6 +540,24 @@ export function App() {
       setLogDraft(null);
       await refresh();
       showToast({ kind: 'success', message: feedbackMessage(result) });
+    });
+  }
+
+  async function attemptBreakthrough() {
+    if (!selectedProject) {
+      return;
+    }
+
+    await run(setBusy, showToast, async () => {
+      const result = await unwrap(window.api.attempt_breakthrough(selectedProject.id));
+      await refresh();
+      showToast({ kind: result.passed ? 'success' : 'error', message: result.message });
+      if (result.passed) {
+        setBreakthroughData({
+          resourceTitle: selectedProject.name,
+          stageName: `${result.project.realm_name}${result.project.realm_layer}层`,
+        });
+      }
     });
   }
 
@@ -499,128 +637,93 @@ export function App() {
     return <main className="app-shell grid place-items-center text-slate-100">正在读取本地记录...</main>;
   }
 
-  const totalProjects = overview.projects.length;
-  const totalResources = overview.projects.reduce((sum, p) => sum + p.resource_count, 0);
-  const averageProgress = overview.projects.length
-    ? Math.round(overview.projects.reduce((sum, p) => sum + p.progress_percent, 0) / overview.projects.length)
-    : 0;
-  const totalRecentLogs = overview.recent_logs.length;
-
   return (
-    <main className="app-shell">
-      {toasts.length > 0 ? (
-        <div className="toast-stack" aria-live="polite">
-          {toasts.slice(0, 3).map((toast) => (
-            <div className={`toast ${toast.kind}`} role={toast.kind === 'error' ? 'alert' : 'status'} key={toast.id}>
-              {toast.kind === 'success' ? <Check size={18} /> : <CircleAlert size={18} />}
-              <span>{toast.message}</span>
-              <button type="button" onClick={() => setToasts((current) => current.filter((item) => item.id !== toast.id))} title="关闭" aria-label="关闭提示">
-                <X size={16} />
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : null}
+    <main className={`app-shell ${stageClass}`}>
+      {/* ==================== 🪐 聚灵阵背景与灵气粒子 🪐 ==================== */}
+      <div className="spiritual-array-bg">
+        {/* Rotating SVG array */}
+        <svg className="spiritual-array-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="100" cy="100" r="95" stroke="currentColor" strokeWidth="0.8" strokeDasharray="8 4" />
+          <circle cx="100" cy="100" r="85" stroke="currentColor" strokeWidth="0.5" />
+          <circle cx="100" cy="100" r="70" stroke="currentColor" strokeWidth="1.2" strokeDasharray="3 3" />
+          <circle cx="100" cy="100" r="45" stroke="currentColor" strokeWidth="0.6" />
+          <path d="M100 5 L100 195 M5 100 L195 100 M33 33 L167 167 M33 167 L167 33" stroke="currentColor" strokeWidth="0.3" opacity="0.5" />
+          <circle cx="100" cy="100" r="15" stroke="currentColor" strokeWidth="1" />
+          <path d="M100 85 A7.5 7.5 0 0 0 100 100 A7.5 7.5 0 0 1 100 115 A15 15 0 0 1 100 85 Z" fill="currentColor" opacity="0.8" />
+        </svg>
 
-      {/* ==================== LEFT SIDEBAR ==================== */}
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <div className="logo-wrap">
-            <span className="logo-icon">☯</span>
-            <div>
-              <p className="eyebrow">Cultivation System</p>
-              <h1>修仙参悟系统</h1>
-            </div>
-          </div>
-          <p className="save-status">
-            {overview.last_saved_at ? `本地已保存 · ${overview.last_saved_at}` : '等待首次本地保存'}
-          </p>
-        </div>
+        {/* Floating particles */}
+        {particles.map((p) => {
+          const particleStyle: ParticleStyle = {
+              left: p.left,
+              animationDelay: p.delay,
+              animationDuration: p.duration,
+              width: p.size,
+              height: p.size,
+              '--drift-x': p.driftX,
+              background: p.color,
+              boxShadow: `0 0 10px ${p.color}`
+            };
 
-        <nav className="sidebar-nav">
-          <div className="sidebar-section-header">
-            <h2>修炼方向</h2>
-            <button
-              className={`icon-button new-project-toggle ${showNewProject ? 'active' : ''}`}
-              type="button"
-              onClick={() => setShowNewProject(!showNewProject)}
-              title="新建方向"
-              aria-label="新建修炼方向"
-            >
-              <FolderPlus size={16} />
-            </button>
-          </div>
+          return <div key={p.id} className="spiritual-particle" style={particleStyle} />;
+        })}
+      </div>
 
-          {showNewProject ? (
-            <div className="sidebar-new-project-panel">
-              <form className="stack-form" onSubmit={async (e) => { e.preventDefault(); await submitProject(e); setShowNewProject(false); }}>
-                <input value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="方向名称" required maxLength={120} />
-                <textarea value={projectDescription} onChange={(event) => setProjectDescription(event.target.value)} placeholder="描述..." maxLength={1000} />
-                <div className="form-actions">
-                  <button className="secondary-button" type="submit" disabled={busy}>
-                    保存方向
-                  </button>
-                  <button className="ghost-button compact-btn" type="button" onClick={() => setShowNewProject(false)}>
-                    取消
-                  </button>
-                </div>
-              </form>
-            </div>
-          ) : null}
+      <ToastStack toasts={toasts} onDismiss={(toastId) => setToasts((current) => current.filter((item) => item.id !== toastId))} />
 
-          <div className="item-list sidebar-project-list">
-            {overview.projects.map((project) => (
-              <button
-                className={`list-item ${project.id === selectedProject?.id ? 'active' : ''}`}
-                key={project.id}
-                type="button"
-                onClick={() => setSelectedProjectId(project.id)}
-              >
-                <div className="list-item-main">
-                  <span className="project-dot">●</span>
-                  <span className="project-name">{project.name}</span>
-                </div>
-                <small className="project-meta">
-                  {project.progress_percent}% · {project.resource_count} 份资料
-                </small>
-              </button>
-            ))}
-            {overview.projects.length === 0 ? <p className="empty">暂无修炼方向</p> : null}
-          </div>
-        </nav>
-      </aside>
-
+      <ProjectSidebar
+        overview={overview}
+        selectedProject={selectedProject}
+        showNewProject={showNewProject}
+        projectName={projectName}
+        projectDescription={projectDescription}
+        busy={busy}
+        onToggleNewProject={() => setShowNewProject((current) => !current)}
+        onCloseNewProject={() => setShowNewProject(false)}
+        onProjectNameChange={setProjectName}
+        onProjectDescriptionChange={setProjectDescription}
+        onSubmitProject={submitProject}
+        onSelectProject={setSelectedProjectId}
+      />
       {/* ==================== RIGHT CONTENT AREA ==================== */}
       <div className="content-area">
         {/* Sticky Header */}
         <header className="content-header">
           <div className="breadcrumb">
             <span className="muted">当前境界 /</span>
-            <strong>{selectedProject?.name ?? '未选择法门'}</strong>
+            <strong className="text-gradient-themed" style={{ textShadow: '0 0 10px rgb(var(--accent-strong-rgb) / 0.4)', fontSize: '19px' }}>
+              {selectedProject?.name ?? '未选择法门'} {selectedProject ? `(${stageName})` : ''}
+            </strong>
           </div>
-          <button className="icon-button refresh-btn" type="button" onClick={refresh} disabled={busy} title="刷新" aria-label="刷新">
-            <RefreshCcw size={16} />
-          </button>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            {selectedProject && projectCultivation ? (
+              <button
+                className="secondary-button"
+                type="button"
+                style={{
+                  minHeight: '30px',
+                  fontSize: '14px',
+                  padding: '4px 10px',
+                  borderColor: 'var(--accent)',
+                  background: 'rgba(184, 141, 62, 0.05)',
+                  cursor: 'pointer'
+                }}
+                onClick={attemptBreakthrough}
+                title={projectCultivation.can_breakthrough ? '尝试突破境界' : projectCultivation.bottlenecks[0] ?? '暂不可突破'}
+              >
+                {projectCultivation.can_breakthrough ? '尝试突破' : '道基未稳'}
+              </button>
+            ) : null}
+            <button className="icon-button refresh-btn" type="button" onClick={refresh} disabled={busy} title="刷新" aria-label="刷新">
+              <RefreshCcw size={16} />
+            </button>
+          </div>
         </header>
 
         {/* Scrollable Content Body */}
         <div className="content-body">
           {overview.pending ? (
-            <section className="pending-strip">
-              <div>
-                <strong>待出关记录</strong>
-                <span>{overview.pending.current_resource_title ?? overview.pending.resource_title_snapshot}</span>
-              </div>
-              <div className="actions">
-                <button type="button" className="primary-button" onClick={() => openPendingLog(overview.pending!)} disabled={busy}>
-                  <Save size={16} />
-                  出关记录：保存本次学习进度
-                </button>
-                <button type="button" className="ghost-button" onClick={() => abandonPending(overview.pending!)} disabled={busy}>
-                  放弃记录
-                </button>
-              </div>
-            </section>
+            <PendingStrip pending={overview.pending} busy={busy} onOpenLog={openPendingLog} onAbandon={abandonPending} />
           ) : null}
 
           {/* Core Grid: Main Column (details, resources) + Right Profile (wukong style) */}
@@ -643,7 +746,7 @@ export function App() {
                       </button>
                       <button className="ghost-button" type="button" onClick={() => openLog(overview.recommended!, 'manual')} disabled={busy}>
                         <BookOpen size={16} />
-                        出关记录
+                        出关记录：保存本次学习进度
                       </button>
                     </div>
                   </>
@@ -652,558 +755,106 @@ export function App() {
                 )}
               </section>
 
-              {/* Selected Project details and its resources */}
-              <section className="detail-panel">
-                <div className="panel-heading">
-                  <div>
-                    <p className="eyebrow">法门内景</p>
-                    <h2>{selectedProject?.name ?? '暂无选定法门'}</h2>
-                  </div>
-                  {selectedProject ? (
-                    <div className="actions">
-                      <button className="ghost-button" type="button" onClick={() => setProjectEdit({ id: selectedProject.id, name: selectedProject.name })} disabled={busy} title="编辑方向">
-                        <Pencil size={16} />
-                      </button>
-                      <button className="danger-button" type="button" onClick={() => deleteProject(selectedProject.id)} disabled={busy} title="删除方向">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-
-                {selectedProject ? (
-                  <>
-                    <form className="resource-form" onSubmit={submitResource}>
-                      <input value={resourceTitle} onChange={(event) => setResourceTitle(event.target.value)} placeholder="资料名" required maxLength={200} />
-                      <select value={resourceType} onChange={(event) => setResourceType(event.target.value as ResourceType)}>
-                        {resourceTypes.map((type) => (
-                          <option key={type.value} value={type.value}>
-                            {type.label}
-                          </option>
-                        ))}
-                      </select>
-                      <select value={openKind} onChange={(event) => setOpenKind(event.target.value as OpenKind)}>
-                        {openKinds.map((kind) => (
-                          <option key={kind.value} value={kind.value}>
-                            {kind.label}
-                          </option>
-                        ))}
-                      </select>
-                      {openKind !== 'record_only' ? (
-                        <input value={pathOrUrl} onChange={(event) => setPathOrUrl(event.target.value)} placeholder="路径或链接" required maxLength={2048} />
-                      ) : null}
-                      <input value={initialProgress} onChange={(event) => setInitialProgress(event.target.value)} type="number" min={0} max={100} placeholder="初始进度" />
-                      <input value={initialNextAction} onChange={(event) => setInitialNextAction(event.target.value)} placeholder="下次闭关目标" maxLength={500} />
-                      <button className="secondary-button" type="submit" disabled={busy}>
-                        <FilePlus2 size={16} />
-                        加入资料
-                      </button>
-                    </form>
-
-                    <div className="resource-list">
-                      {projectDetail?.resources.items.map((resource) => (
-                        <article className="resource-row" key={resource.id}>
-                          <div className="resource-info">
-                            <div className="resource-title-row">
-                              <span className={`resource-badge ${resource.type}`}>
-                                {resourceTypes.find((t) => t.value === resource.type)?.label ?? resource.type}
-                              </span>
-                              <h3>{resource.title}</h3>
-                            </div>
-                            <p>{resource.progress_text || '尚未记录进度描述。'}</p>
-                            <p className="next-action">
-                              <strong className="action-tag">目标：</strong>
-                              {resource.next_action || '还没有设置下次闭关目标。'}
-                            </p>
-                            <ProgressBar value={resource.progress_percent} />
-                          </div>
-                          <div className="resource-actions">
-                            <button className="primary-button" type="button" onClick={() => continueResource(resource)} disabled={busy}>
-                              <Play size={14} />
-                              继续闭关
-                            </button>
-                            <button className="ghost-button" type="button" onClick={() => openLog(resource, 'manual')} disabled={busy}>
-                              出关记录
-                            </button>
-                            <button className="ghost-button" type="button" onClick={() => showResourceDetail(resource)} disabled={busy}>
-                              详情
-                            </button>
-                            <button className="ghost-button" type="button" onClick={() => startEditResource(resource)} disabled={busy} title="编辑资料">
-                              <Pencil size={14} />
-                            </button>
-                            <button className="danger-button" type="button" onClick={() => deleteResource(resource)} disabled={busy} title="删除资料">
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </article>
-                      ))}
-                      {projectDetail && projectDetail.resources.items.length === 0 ? (
-                        <p className="empty">此方向下暂无秘籍资料，请在上方添加。</p>
-                      ) : null}
-                    </div>
-                  </>
-                ) : (
-                  <p className="empty">请先在左侧选择或创建一个修炼方向以查阅和管理资料。</p>
-                )}
-              </section>
+              <ResourceManagementPanel
+                selectedProject={selectedProject}
+                projectDetail={projectDetail}
+                resourceTitle={resourceTitle}
+                resourceType={resourceType}
+                cultivationRole={cultivationRole}
+                masteryGroup={masteryGroup}
+                masteryWeight={masteryWeight}
+                openKind={openKind}
+                pathOrUrl={pathOrUrl}
+                initialProgress={initialProgress}
+                initialNextAction={initialNextAction}
+                resourceTypes={resourceTypes}
+                cultivationRoles={cultivationRoles}
+                openKinds={openKinds}
+                busy={busy}
+                onResourceTitleChange={setResourceTitle}
+                onResourceTypeChange={setResourceType}
+                onCultivationRoleChange={setCultivationRole}
+                onMasteryGroupChange={setMasteryGroup}
+                onMasteryWeightChange={setMasteryWeight}
+                onOpenKindChange={setOpenKind}
+                onPathOrUrlChange={setPathOrUrl}
+                onInitialProgressChange={setInitialProgress}
+                onInitialNextActionChange={setInitialNextAction}
+                onSubmitResource={submitResource}
+                onPickPath={(kind) => pickPath(kind, false)}
+                onEditProject={(project) => setProjectEdit({ id: project.id, name: project.name })}
+                onDeleteProject={deleteProject}
+                onContinueResource={continueResource}
+                onOpenLog={openLog}
+                onShowResourceDetail={showResourceDetail}
+                onStartEditResource={startEditResource}
+                onDeleteResource={deleteResource}
+              />
             </div>
 
-            {/* Right Column: Wukong Style attributes Profile panel */}
-            <div className="wukong-profile-panel">
-              <div className="wukong-profile-header">
-                <h2>【 元神法帖 】</h2>
-                <p className="eyebrow text-center">Spiritual Attributes</p>
-              </div>
-
-              {/* Stats group 1: Foundation */}
-              <div className="wukong-stat-group">
-                <div className="wukong-stat-group-header">
-                  <span>元神根基</span>
-                </div>
-                <div className="wukong-stat-item">
-                  <span className="stat-label">参悟法门</span>
-                  <span className="stat-divider"></span>
-                  <span className="stat-value">{totalProjects} 门</span>
-                </div>
-                <div className="wukong-stat-item">
-                  <span className="stat-label">研读法宝</span>
-                  <span className="stat-divider"></span>
-                  <span className="stat-value">{totalResources} 册</span>
-                </div>
-                <div className="wukong-stat-item">
-                  <span className="stat-label">修行时日</span>
-                  <span className="stat-divider"></span>
-                  <span className="stat-value text-xs">{overview.last_saved_at ? '已保存' : '新参悟'}</span>
-                </div>
-              </div>
-
-              {/* Stats group 2: Progress */}
-              <div className="wukong-stat-group">
-                <div className="wukong-stat-group-header">
-                  <span>大乘参悟</span>
-                </div>
-                <div className="wukong-stat-item">
-                  <span className="stat-label">总参悟度</span>
-                  <span className="stat-divider"></span>
-                  <span className="stat-value">{averageProgress}%</span>
-                </div>
-                <div className="wukong-stat-item">
-                  <span className="stat-label">主修大道</span>
-                  <span className="stat-divider"></span>
-                  <span className="stat-value truncate max-w-[80px]" title={selectedProject?.name ?? '暂无'}>
-                    {selectedProject?.name ?? '无'}
-                  </span>
-                </div>
-                <div className="wukong-stat-item">
-                  <span className="stat-label">主修进度</span>
-                  <span className="stat-divider"></span>
-                  <span className="stat-value">{selectedProject ? selectedProject.progress_percent : 0}%</span>
-                </div>
-              </div>
-
-              {/* Stats group 3: Resistances */}
-              <div className="wukong-stat-group">
-                <div className="wukong-stat-group-header">
-                  <span>历练劫难</span>
-                </div>
-                <div className="wukong-stat-item">
-                  <span className="stat-label">红尘心魔</span>
-                  <span className="stat-divider"></span>
-                  <span className={`stat-value ${overview.pending ? 'cinnabar-text' : 'success-text'}`}>
-                    {overview.pending ? '心魔滋生' : '灵台清明'}
-                  </span>
-                </div>
-                <div className="wukong-stat-item">
-                  <span className="stat-label">历练次数</span>
-                  <span className="stat-divider"></span>
-                  <span className="stat-value">{totalRecentLogs} 回</span>
-                </div>
-              </div>
-
-              {/* Wukong Style Log fold (Recent logs) */}
-              <div className="wukong-logs-section">
-                <div className="wukong-stat-group-header">
-                  <span>历练志 / 最近出关</span>
-                </div>
-                <div className="wukong-log-scroller">
-                  {overview.recent_logs.map((log) => (
-                    <div className="wukong-log-item" key={log.id}>
-                      <span className="log-dot">◆</span>
-                      <div className="log-item-content">
-                        <strong>{log.resource_title_snapshot}</strong>
-                        <small>
-                          进度提升 {log.progress_before_percent}% → {log.progress_after_percent}%
-                        </small>
-                      </div>
-                    </div>
-                  ))}
-                  {overview.recent_logs.length === 0 ? <p className="empty text-xs py-4 text-center">暂无历练印记</p> : null}
-                </div>
-              </div>
-            </div>
+            <ProjectStatsPanel overview={overview} selectedProject={selectedProject} cultivation={projectCultivation} />
           </div>
         </div>
       </div>
 
       {logDraft ? (
-        <div className="modal-backdrop" role="presentation">
-          <form className="modal" onSubmit={submitLog} onKeyDown={(event) => handleModalKeyDown(event, () => setLogDraft(null))} role="dialog" aria-modal="true" aria-labelledby="study-log-title">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">出关记录：保存本次学习进度</p>
-                <h2 id="study-log-title">{logDraft.resource.title}</h2>
-              </div>
-              <button className="icon-button" type="button" onClick={() => setLogDraft(null)} title="关闭" aria-label="关闭出关记录">
-                <X size={18} />
-              </button>
-            </div>
-            <label>
-              出关进度
-              <textarea value={logDraft.progress_text} onChange={(event) => setLogDraft({ ...logDraft, progress_text: event.target.value })} maxLength={500} required autoFocus />
-            </label>
-            <label>
-              参悟进度
-              <input
-                value={logDraft.progress_percent}
-                onChange={(event) => setLogDraft({ ...logDraft, progress_percent: event.target.value, progressChangedByStatus: false })}
-                type="number"
-                min={0}
-                max={100}
-                required
-              />
-            </label>
-            <label>
-              状态
-              <select value={logDraft.status} onChange={(event) => changeLogStatus(event.target.value as ResourceStatus)}>
-                {resourceStatuses.map((status) => (
-                  <option key={status.value} value={status.value}>
-                    {status.themed_label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {logDraft.status === 'completed' || logDraft.status === 'not_started' ? (
-              <p className="field-hint">{logDraft.status === 'completed' ? '进度将设为 100%。' : '进度将设为 0%。'}</p>
-            ) : null}
-            <label>
-              下次闭关目标
-              <textarea value={logDraft.next_action} onChange={(event) => setLogDraft({ ...logDraft, next_action: event.target.value })} maxLength={500} />
-            </label>
-            <div className="actions">
-              <button className="primary-button" type="submit" disabled={busy}>
-                <Save size={16} />
-                保存记录
-              </button>
-              <button className="ghost-button" type="button" onClick={() => setLogDraft(null)}>
-                取消
-              </button>
-            </div>
-          </form>
-        </div>
+        <StudyLogModal
+          draft={logDraft}
+          resourceStatuses={resourceStatuses}
+          evidenceTypes={evidenceTypes}
+          busy={busy}
+          onChange={setLogDraft}
+          onStatusChange={changeLogStatus}
+          onSubmit={submitLog}
+          onClose={() => setLogDraft(null)}
+        />
       ) : null}
 
       {projectEdit ? (
-        <div className="modal-backdrop" role="presentation">
-          <form className="modal" onSubmit={submitProjectEdit} onKeyDown={(event) => handleModalKeyDown(event, () => setProjectEdit(null))} role="dialog" aria-modal="true" aria-labelledby="project-edit-title">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">方向编辑</p>
-                <h2 id="project-edit-title">{projectEdit.name}</h2>
-              </div>
-              <button className="icon-button" type="button" onClick={() => setProjectEdit(null)} title="关闭" aria-label="关闭方向编辑">
-                <X size={18} />
-              </button>
-            </div>
-            <label>
-              方向名称
-              <input value={projectEdit.name} onChange={(event) => setProjectEdit({ ...projectEdit, name: event.target.value })} required maxLength={120} autoFocus />
-            </label>
-            <div className="actions">
-              <button className="primary-button" type="submit" disabled={busy}>
-                <Save size={16} />
-                保存方向
-              </button>
-              <button className="ghost-button" type="button" onClick={() => setProjectEdit(null)}>
-                取消
-              </button>
-            </div>
-          </form>
-        </div>
+        <ProjectEditModal
+          draft={projectEdit}
+          busy={busy}
+          onChange={setProjectEdit}
+          onSubmit={submitProjectEdit}
+          onClose={() => setProjectEdit(null)}
+        />
       ) : null}
 
       {resourceEdit ? (
-        <div className="modal-backdrop" role="presentation">
-          <form className="modal" onSubmit={submitResourceEdit} onKeyDown={(event) => handleModalKeyDown(event, () => setResourceEdit(null))} role="dialog" aria-modal="true" aria-labelledby="resource-edit-title">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">资料编辑</p>
-                <h2 id="resource-edit-title">{resourceEdit.title}</h2>
-              </div>
-              <button className="icon-button" type="button" onClick={() => setResourceEdit(null)} title="关闭" aria-label="关闭资料编辑">
-                <X size={18} />
-              </button>
-            </div>
-            <label>
-              资料名
-              <input value={resourceEdit.title} onChange={(event) => setResourceEdit({ ...resourceEdit, title: event.target.value })} required maxLength={200} autoFocus />
-            </label>
-            <label>
-              类型
-              <select value={resourceEdit.type} onChange={(event) => setResourceEdit({ ...resourceEdit, type: event.target.value as ResourceType })}>
-                {resourceTypes.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              打开方式
-              <select value={resourceEdit.open_kind} onChange={(event) => setResourceEdit({ ...resourceEdit, open_kind: event.target.value as OpenKind })}>
-                {openKinds.map((kind) => (
-                  <option key={kind.value} value={kind.value}>
-                    {kind.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {resourceEdit.open_kind !== 'record_only' ? (
-              <label>
-                路径或链接
-                <input value={resourceEdit.path_or_url} onChange={(event) => setResourceEdit({ ...resourceEdit, path_or_url: event.target.value })} required maxLength={2048} />
-              </label>
-            ) : null}
-            <label>
-              非终态标记
-              <select value={resourceEdit.status} onChange={(event) => setResourceEdit({ ...resourceEdit, status: event.target.value as ResourceEditDraft['status'] })}>
-                <option value="">保持当前状态</option>
-                {resourceStatuses
-                  .filter((status) => status.value === 'learning' || status.value === 'review' || status.value === 'paused')
-                  .map((status) => (
-                    <option key={status.value} value={status.value}>
-                      {status.themed_label}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <div className="actions">
-              <button className="primary-button" type="submit" disabled={busy}>
-                <Save size={16} />
-                保存资料
-              </button>
-              <button className="ghost-button" type="button" onClick={() => setResourceEdit(null)}>
-                取消
-              </button>
-            </div>
-          </form>
-        </div>
+        <ResourceEditModal
+          draft={resourceEdit}
+          resourceTypes={resourceTypes}
+          cultivationRoles={cultivationRoles}
+          openKinds={openKinds}
+          resourceStatuses={resourceStatuses}
+          busy={busy}
+          onChange={setResourceEdit}
+          onSubmit={submitResourceEdit}
+          onPickPath={(kind) => pickPath(kind, true)}
+          onClose={() => setResourceEdit(null)}
+        />
       ) : null}
 
-      {resourceDetail ? (
-        <div className="modal-backdrop" role="presentation">
-          <section className="modal" onKeyDown={(event) => handleModalKeyDown(event, () => setResourceDetail(null))} role="dialog" aria-modal="true" aria-labelledby="resource-detail-title">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">资料详情</p>
-                <h2 id="resource-detail-title">{resourceDetail.title}</h2>
-              </div>
-              <button className="icon-button" type="button" onClick={() => setResourceDetail(null)} title="关闭" aria-label="关闭资料详情">
-                <X size={18} />
-              </button>
-            </div>
-            <ProgressBar value={resourceDetail.progress_percent} />
-            <dl className="detail-list">
-              <div>
-                <dt>当前参悟位置</dt>
-                <dd>{resourceDetail.progress_text ?? '尚未记录'}</dd>
-              </div>
-              <div>
-                <dt>下次闭关目标</dt>
-                <dd>{resourceDetail.next_action ?? '尚未设置'}</dd>
-              </div>
-              <div>
-                <dt>类型</dt>
-                <dd>{resourceTypes.find((type) => type.value === resourceDetail.type)?.label ?? resourceDetail.type}</dd>
-              </div>
-              <div>
-                <dt>打开方式</dt>
-                <dd>{openKinds.find((kind) => kind.value === resourceDetail.open_kind)?.label ?? resourceDetail.open_kind}</dd>
-              </div>
-              <div>
-                <dt>状态</dt>
-                <dd>{enums?.resource_status.find((status) => status.value === resourceDetail.status)?.themed_label ?? resourceDetail.status}</dd>
-              </div>
-              <div>
-                <dt>打开目标</dt>
-                <dd>{resourceDetail.path_or_url_display ?? '仅记录进度'}</dd>
-              </div>
-              <div>
-                <dt>最近打开</dt>
-                <dd>{resourceDetail.last_opened_at ?? '暂无'}</dd>
-              </div>
-              <div>
-                <dt>最近出关</dt>
-                <dd>{resourceDetail.last_studied_at ?? '暂无'}</dd>
-              </div>
-            </dl>
-            <h3 className="compact-heading">最近记录</h3>
-            <div className="item-list">
-              {resourceDetail.recent_logs.map((log) => (
-                <div className="log-item" key={log.id}>
-                  <strong>
-                    {log.progress_before_percent}% {'->'} {log.progress_after_percent}%
-                  </strong>
-                  <small>{log.next_action || '未设置下次闭关目标'}</small>
-                </div>
-              ))}
-              {resourceDetail.recent_logs.length === 0 ? <p className="empty">暂无记录。</p> : null}
-            </div>
-          </section>
-        </div>
-      ) : null}
+      {resourceDetail ? <ResourceDetailModal detail={resourceDetail} enums={enums} onClose={() => setResourceDetail(null)} /> : null}
 
       {pendingConflict ? (
-        <div className="modal-backdrop" role="presentation">
-          <section className="modal compact-modal" onKeyDown={(event) => handleModalKeyDown(event, () => setPendingConflict(null))} role="dialog" aria-modal="true" aria-labelledby="pending-conflict-title">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">待出关记录</p>
-                <h2 id="pending-conflict-title">先处理上一次学习</h2>
-              </div>
-              <button className="icon-button" type="button" onClick={() => setPendingConflict(null)} title="关闭" aria-label="关闭待记录冲突">
-                <X size={18} />
-              </button>
-            </div>
-            <p className="modal-message">
-              {pendingConflict.current_resource_title ?? pendingConflict.resource_title_snapshot}
-            </p>
-            <div className="actions">
-              <button className="primary-button" type="button" onClick={() => openPendingLog(pendingConflict)} autoFocus>
-                <Save size={16} />
-                记录本次学习
-              </button>
-              <button className="danger-button" type="button" onClick={() => abandonPending(pendingConflict)}>
-                放弃记录
-              </button>
-              <button className="ghost-button" type="button" onClick={() => setPendingConflict(null)}>
-                取消
-              </button>
-            </div>
-          </section>
-        </div>
+        <PendingConflictModal
+          pending={pendingConflict}
+          onOpenLog={openPendingLog}
+          onAbandon={abandonPending}
+          onClose={() => setPendingConflict(null)}
+        />
       ) : null}
 
-      {confirmRequest ? (
-        <div className="modal-backdrop" role="presentation">
-          <section className="modal compact-modal" onKeyDown={(event) => handleModalKeyDown(event, () => settleConfirm(false))} role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">确认操作</p>
-                <h2 id="confirm-title">{confirmRequest.title}</h2>
-              </div>
-              <button className="icon-button" type="button" onClick={() => settleConfirm(false)} title="关闭" aria-label="关闭确认">
-                <X size={18} />
-              </button>
-            </div>
-            <p id="confirm-message" className="modal-message">
-              {confirmRequest.message}
-            </p>
-            <div className="actions">
-              <button className={confirmRequest.danger ? 'danger-button' : 'primary-button'} type="button" onClick={() => settleConfirm(true)} autoFocus>
-                {confirmRequest.confirmLabel}
-              </button>
-              <button className="ghost-button" type="button" onClick={() => settleConfirm(false)}>
-                {confirmRequest.cancelLabel ?? '取消'}
-              </button>
-            </div>
-          </section>
-        </div>
-      ) : null}
+      {confirmRequest ? <ConfirmDialog request={confirmRequest} onSettle={settleConfirm} /> : null}
+
+      {breakthroughData && (
+        <BreakthroughOverlay
+          resourceTitle={breakthroughData.resourceTitle}
+          stageName={breakthroughData.stageName}
+          onClose={() => setBreakthroughData(null)}
+        />
+      )}
     </main>
   );
-}
-
-export function ProgressBar({ value }: { value: number }) {
-  const progress = normalizeProgressPercent(value);
-
-  return (
-    <div className="progress-wrap" role="progressbar" aria-label={`完成 ${progress}%`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
-      <span style={{ width: `${progress}%` }} />
-      <strong>{progress}%</strong>
-    </div>
-  );
-}
-
-function handleModalKeyDown(event: KeyboardEvent<HTMLElement>, close: () => void) {
-  if (event.key === 'Escape') {
-    event.preventDefault();
-    close();
-    return;
-  }
-
-  if (event.key !== 'Tab') {
-    return;
-  }
-
-  const focusable = Array.from(
-    event.currentTarget.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
-    ),
-  ).filter((element) => element.offsetParent !== null);
-
-  if (focusable.length === 0) {
-    event.preventDefault();
-    return;
-  }
-
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  const active = document.activeElement;
-
-  if (event.shiftKey && active === first) {
-    event.preventDefault();
-    last.focus();
-  } else if (!event.shiftKey && active === last) {
-    event.preventDefault();
-    first.focus();
-  }
-}
-
-async function unwrap<T>(promise: Promise<IpcResult<T>>): Promise<T> {
-  return unwrapResult(await promise);
-}
-
-function unwrapResult<T>(result: IpcResult<T>): T {
-  if (result.ok) {
-    return result.data;
-  }
-  throw new Error(result.error.user_message);
-}
-
-async function run(setBusy: (value: boolean) => void, showToast: (toast: ToastInput) => void, work: () => Promise<void>) {
-  setBusy(true);
-  try {
-    await work();
-  } catch (error) {
-    showError(showToast, error);
-  } finally {
-    setBusy(false);
-  }
-}
-
-function showError(showToast: (toast: ToastInput) => void, error: unknown) {
-  showToast({ kind: 'error', message: error instanceof Error ? error.message : '操作失败。' });
-}
-
-function feedbackMessage(result: SaveStudyLogOutput): string {
-  if (result.feedback_kind === 'completed') {
-    return '已记录本次学习，资料已参悟完成。';
-  }
-  if (result.feedback_kind === 'unchanged') {
-    return '已记录本次学习，本次暂无进度变化。';
-  }
-  if (result.feedback_kind === 'decreased') {
-    return `已记录本次学习，进度调整为 ${result.resource.progress_percent}%。`;
-  }
-  return `已记录本次学习，进度提升 ${result.progress_delta}%。`;
 }

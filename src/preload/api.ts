@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type { IpcRendererEvent } from 'electron';
 
 import type { CultivationAPI } from '../shared/types/api';
 
@@ -8,6 +9,8 @@ const api: CultivationAPI = {
   get_home_overview: () => invoke('get_home_overview'),
   list_projects: (input) => invoke('list_projects', input ?? {}),
   get_project_detail: (project_id, input) => invoke('get_project_detail', { project_id, ...(input ?? {}) }),
+  get_project_cultivation: (project_id) => invoke('get_project_cultivation', { project_id }),
+  attempt_breakthrough: (project_id) => invoke('attempt_breakthrough', { project_id }),
   create_project: (input) => invoke('create_project', input),
   update_project: (project_id, input) => invoke('update_project', { project_id, ...input }),
   delete_project: (project_id) => invoke('delete_project', { project_id }),
@@ -19,7 +22,14 @@ const api: CultivationAPI = {
   save_study_log: (input) => invoke('save_study_log', input),
   get_pending_session: () => invoke('get_pending_session'),
   abandon_pending_session: (session_id) => invoke('abandon_pending_session', { session_id }),
+  close_pending_session: (session_id, close_source) => invoke('close_pending_session', { session_id, close_source }),
+  on_pending_session_closed: (callback) => {
+    const listener = (_event: IpcRendererEvent, pending: unknown) => callback(pending as never);
+    ipcRenderer.on('event:pending_session_closed', listener);
+    return () => ipcRenderer.removeListener('event:pending_session_closed', listener);
+  },
   get_enums: () => invoke('get_enums'),
+  select_local_file: (input) => invoke('select_local_file', input),
 };
 
 contextBridge.exposeInMainWorld('api', api);

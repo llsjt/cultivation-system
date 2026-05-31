@@ -148,7 +148,12 @@ const result = await withApp(9460, userDataDir, async (client) => {
           setter.call(input, value);
           input.dispatchEvent(new Event('input', { bubbles: true }));
         };
-        const form = document.querySelector('.side-panel form');
+        let form = document.querySelector('.side-panel form');
+        if (!form) {
+          document.querySelector('.resource-add-toggle')?.click();
+          await new Promise((resolve) => setTimeout(resolve, 180));
+          form = document.querySelector('.side-panel form');
+        }
         const input = form.querySelector('input');
         for (let index = 0; index < 4; index += 1) {
           setValue(input, 'Toast FIFO ' + index + ' ' + Date.now());
@@ -164,8 +169,10 @@ const result = await withApp(9460, userDataDir, async (client) => {
 
   const detailOpened = await evaluate(
     client,
-    `(() => {
-      const button = Array.from(document.querySelectorAll('button')).find((item) => item.innerText.trim() === '详情');
+    `(async () => {
+      document.querySelector('.resource-row .resource-actions .icon-button')?.click();
+      await new Promise((resolve) => setTimeout(resolve, 180));
+      const button = Array.from(document.querySelectorAll('.dropdown-menu button')).find((item) => item.innerText.trim() === '详情');
       button?.click();
       return Boolean(button);
     })()`,

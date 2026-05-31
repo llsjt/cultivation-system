@@ -1,10 +1,12 @@
 import { z } from 'zod';
 
 import {
+  CultivationRoleSchema,
   OpenKindSchema,
   ProjectStatusSchema,
   ResourceStatusSchema,
   ResourceTypeSchema,
+  StudyEvidenceTypeSchema,
   StudyLogSourceSchema,
 } from './enums';
 import type { AppErrorPayload } from './errors';
@@ -23,6 +25,9 @@ export const ProjectSummarySchema = z.object({
   status: ProjectStatusSchema,
   progress_percent: z.number().int().min(0).max(100),
   resource_count: z.number().int().min(0),
+  realm_rank: z.number().int().min(0).max(4),
+  realm_layer: z.number().int().min(1).max(9),
+  realm_name: z.string(),
   last_studied_at: z.string().nullable(),
   updated_at: isoStringSchema,
   created_at: isoStringSchema,
@@ -34,6 +39,9 @@ export const ResourceSummarySchema = z.object({
   title: z.string(),
   type: ResourceTypeSchema,
   open_kind: OpenKindSchema,
+  cultivation_role: CultivationRoleSchema,
+  mastery_group: z.string().nullable(),
+  mastery_weight: z.number().int().min(1).max(5),
   status: ResourceStatusSchema,
   progress_text: z.string().nullable(),
   progress_percent: z.number().int().min(0).max(100),
@@ -56,6 +64,7 @@ export const StudyLogViewSchema = z.object({
   status_before: ResourceStatusSchema,
   status_after: ResourceStatusSchema,
   next_action: z.string().nullable(),
+  evidence_type: StudyEvidenceTypeSchema.nullable(),
 });
 
 export const PendingSessionViewSchema = z.object({
@@ -65,6 +74,9 @@ export const PendingSessionViewSchema = z.object({
   resource_title_snapshot: z.string(),
   current_resource_title: z.string().nullable(),
   opened_at: isoStringSchema,
+  closed_at: z.string().nullable(),
+  duration_minutes: z.number().int().min(0).max(1440).nullable(),
+  close_source: z.enum(['viewer_closed', 'user_ended', 'app_recovered']).nullable(),
   progress_before_text: z.string().nullable(),
   progress_before_percent: z.number().int().min(0).max(100),
   status_before: ResourceStatusSchema,
@@ -125,6 +137,9 @@ export const CreateResourceInputSchema = z
     initial_progress_text: nullableText(500),
     initial_next_action: nullableText(500),
     initial_status: ResourceStatusSchema.optional(),
+    cultivation_role: CultivationRoleSchema.default('core').optional(),
+    mastery_group: nullableText(120),
+    mastery_weight: z.number().int().min(1).max(5).default(1).optional(),
   })
   .strict();
 
@@ -136,6 +151,9 @@ export const UpdateResourceInputSchema = z
     open_kind: OpenKindSchema,
     path_or_url: nullableText(2048),
     status: z.enum(['learning', 'review', 'paused']).optional(),
+    cultivation_role: CultivationRoleSchema,
+    mastery_group: nullableText(120),
+    mastery_weight: z.number().int().min(1).max(5),
   })
   .strict();
 
@@ -169,6 +187,7 @@ export const SaveStudyLogInputSchema = z
     status: ResourceStatusSchema.optional(),
     duration_minutes: z.number().int().min(0).max(1440).optional().nullable(),
     content: nullableText(2000),
+    evidence_type: StudyEvidenceTypeSchema.optional().nullable(),
     resource_updated_at_before: z.string().min(1),
     confirm_overwrite: z.boolean().default(false).optional(),
   })
@@ -185,8 +204,45 @@ export const GetPendingSessionInputSchema = z.undefined().optional();
 export const GetPendingSessionOutputSchema = PendingSessionViewSchema.nullable();
 export const AbandonPendingSessionInputSchema = z.object({ session_id: idSchema }).strict();
 export const AbandonPendingSessionOutputSchema = z.object({ abandoned: z.literal(true) });
+export const ClosePendingSessionInputSchema = z
+  .object({
+    session_id: idSchema,
+    close_source: z.enum(['viewer_closed', 'user_ended', 'app_recovered']),
+  })
+  .strict();
 
 export const GetEnumsInputSchema = z.undefined().optional();
+
+export const CultivationMetricsSchema = z.object({
+  core_mastery: z.number().int().min(0).max(100),
+  trial_mastery: z.number().int().min(0).max(100),
+  reflection_score: z.number().int().min(0).max(100),
+  stability_score: z.number().int().min(0).max(100),
+});
+
+export const GetProjectCultivationInputSchema = z.object({ project_id: idSchema }).strict();
+export const GetProjectCultivationOutputSchema = z.object({
+  project_id: idSchema,
+  realm_rank: z.number().int().min(0).max(4),
+  realm_name: z.string(),
+  realm_layer: z.number().int().min(1).max(9),
+  next_realm_name: z.string().nullable(),
+  dao_foundation_score: z.number().int().min(0).max(100),
+  can_breakthrough: z.boolean(),
+  metrics: CultivationMetricsSchema,
+  core_resource_count: z.number().int().min(0),
+  trial_resource_count: z.number().int().min(0),
+  recent_log_count: z.number().int().min(0),
+  bottlenecks: z.array(z.string()),
+});
+export const AttemptBreakthroughInputSchema = z.object({ project_id: idSchema }).strict();
+export const AttemptBreakthroughOutputSchema = z.object({
+  passed: z.boolean(),
+  attempt_id: idSchema,
+  message: z.string(),
+  project: ProjectSummarySchema,
+  cultivation: GetProjectCultivationOutputSchema,
+});
 
 export interface IpcOk<T> {
   ok: true;
@@ -216,11 +272,15 @@ export type ContinueResourceInput = z.infer<typeof ContinueResourceInputSchema>;
 export type ContinueResourceOutput = z.infer<typeof ContinueResourceOutputSchema>;
 export type SaveStudyLogInput = z.infer<typeof SaveStudyLogInputSchema>;
 export type SaveStudyLogOutput = z.infer<typeof SaveStudyLogOutputSchema>;
+export type GetProjectCultivationOutput = z.infer<typeof GetProjectCultivationOutputSchema>;
+export type AttemptBreakthroughOutput = z.infer<typeof AttemptBreakthroughOutputSchema>;
 export type GetEnumsOutput = {
   project_status: { value: z.infer<typeof ProjectStatusSchema>; plain_label: string; themed_label: string }[];
   resource_status: { value: z.infer<typeof ResourceStatusSchema>; plain_label: string; themed_label: string }[];
   resource_type: { value: z.infer<typeof ResourceTypeSchema>; label: string }[];
   open_kind: { value: z.infer<typeof OpenKindSchema>; label: string }[];
+  cultivation_role: { value: z.infer<typeof CultivationRoleSchema>; label: string }[];
+  study_evidence_type: { value: z.infer<typeof StudyEvidenceTypeSchema>; label: string }[];
 };
 
 export interface Page<T> {

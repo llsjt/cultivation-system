@@ -11,8 +11,11 @@ import { backupAfterIntegrityCheck } from '../db/migrate';
 function migrateMemoryDb() {
   const db = new Database(':memory:');
   enableForeignKeys(db);
-  const migration = readFileSync(path.resolve(process.cwd(), 'drizzle/0000_mute_spirit.sql'), 'utf8').replaceAll('--> statement-breakpoint', '');
-  db.exec(migration);
+  const migrationsDir = path.resolve(process.cwd(), 'drizzle');
+  for (const fileName of readdirSync(migrationsDir).filter((name) => name.endsWith('.sql')).sort()) {
+    const migration = readFileSync(path.join(migrationsDir, fileName), 'utf8').replaceAll('--> statement-breakpoint', '');
+    db.exec(migration);
+  }
   return db;
 }
 
@@ -20,10 +23,11 @@ describe('database migration', () => {
   it('creates the core tables, indexes and drizzle migration metadata shape', () => {
     const db = migrateMemoryDb();
     const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all() as { name: string }[];
-    expect(tables.map((table) => table.name)).toEqual(['pending_study_sessions', 'projects', 'resources', 'study_logs']);
+    expect(tables.map((table) => table.name)).toEqual(['breakthrough_attempts', 'pending_study_sessions', 'projects', 'resources', 'study_logs']);
 
     const indexes = db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%' ORDER BY name").all() as { name: string }[];
     expect(indexes.map((index) => index.name)).toEqual([
+      'idx_breakthrough_attempts_project_created_at',
       'idx_pending_study_sessions_project_id',
       'idx_pending_study_sessions_resource_id',
       'idx_resources_project_id',
@@ -59,6 +63,18 @@ describe('database migration', () => {
       db.prepare(
         'INSERT INTO resources (id, project_id, title, type, open_kind, status, progress_percent, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       ).run('r-orphan', 'missing', 'r', 'document', 'record_only', 'learning', 20, now, now);
+    }).toThrow();
+
+    expect(() => {
+      db.prepare(
+        'INSERT INTO resources (id, project_id, title, type, open_kind, cultivation_role, status, progress_percent, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      ).run('r-role', 'p1', 'r', 'document', 'record_only', 'invalid', 'learning', 20, now, now);
+    }).toThrow();
+
+    expect(() => {
+      db.prepare(
+        'INSERT INTO study_logs (id, project_id, resource_title_snapshot, studied_at, progress_before_percent, progress_after_percent, status_before, status_after, evidence_type, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      ).run('log-evidence', 'p1', 'r', now, 0, 20, 'not_started', 'learning', 'invalid', now);
     }).toThrow();
     db.close();
   });

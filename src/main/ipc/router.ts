@@ -1,17 +1,21 @@
-import { ipcMain } from 'electron';
+import { ipcMain, dialog, BrowserWindow } from 'electron';
 import { ZodError, type ZodTypeAny } from 'zod';
 
 import {
   AbandonPendingSessionInputSchema,
+  ClosePendingSessionInputSchema,
   ContinueResourceInputSchema,
   CreateProjectInputSchema,
   CreateResourceInputSchema,
   DeleteProjectInputSchema,
   DeleteResourceInputSchema,
   GetHomeOverviewInputSchema,
+  GetProjectCultivationInputSchema,
   GetPendingSessionInputSchema,
   GetProjectDetailInputSchema,
   GetResourceDetailInputSchema,
+  AttemptBreakthroughInputSchema,
+  GetEnumsInputSchema,
   ListProjectsInputSchema,
   SaveStudyLogInputSchema,
   UpdateProjectInputSchema,
@@ -28,6 +32,8 @@ export function registerIpcHandlers(service: CultivationService): void {
   register('get_home_overview', GetHomeOverviewInputSchema, () => service.getHomeOverview());
   register('list_projects', ListProjectsInputSchema, (input) => service.listProjects(input as { limit?: number; offset?: number }));
   register('get_project_detail', GetProjectDetailInputSchema, (input) => service.getProjectDetail(input as { project_id: string; limit?: number; offset?: number }));
+  register('get_project_cultivation', GetProjectCultivationInputSchema, (input) => service.getProjectCultivation((input as { project_id: string }).project_id));
+  register('attempt_breakthrough', AttemptBreakthroughInputSchema, (input) => service.attemptBreakthrough((input as { project_id: string }).project_id));
   register('create_project', CreateProjectInputSchema, (input) => service.createProject(input as never));
   register('update_project', UpdateProjectInputSchema, (input) => service.updateProject(input as never));
   register('delete_project', DeleteProjectInputSchema, (input) => service.deleteProject((input as { project_id: string }).project_id));
@@ -39,7 +45,25 @@ export function registerIpcHandlers(service: CultivationService): void {
   register('save_study_log', SaveStudyLogInputSchema, (input) => service.saveStudyLog(input as never));
   register('get_pending_session', GetPendingSessionInputSchema, () => service.getPendingSession());
   register('abandon_pending_session', AbandonPendingSessionInputSchema, (input) => service.abandonPendingSession((input as { session_id: string }).session_id));
-  register('get_enums', GetPendingSessionInputSchema, () => enumLabels);
+  register('close_pending_session', ClosePendingSessionInputSchema, (input) => service.closePendingSession(input as { session_id: string; close_source: 'viewer_closed' | 'user_ended' | 'app_recovered' }));
+  register('get_enums', GetEnumsInputSchema, () => enumLabels);
+
+  ipcMain.handle('cmd:select_local_file', async (_event, input): Promise<IpcResult<string | null>> => {
+    try {
+      const parsedInput = (input as { properties?: Array<'openFile' | 'openDirectory'> }) ?? {};
+      const focusedWindow = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+      const result = await dialog.showOpenDialog(focusedWindow, {
+        properties: parsedInput.properties ?? ['openFile'],
+        title: parsedInput.properties?.includes('openDirectory') ? '选择本地修炼目录/文件夹' : '选择本地修炼秘卷文件',
+      });
+      if (result.canceled || result.filePaths.length === 0) {
+        return { ok: true, data: null };
+      }
+      return { ok: true, data: result.filePaths[0] };
+    } catch (error) {
+      return { ok: false, error: toAppErrorPayload(error) };
+    }
+  });
 }
 
 function register(command: string, schema: ZodTypeAny, handler: Handler): void {

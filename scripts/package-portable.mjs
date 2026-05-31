@@ -9,7 +9,7 @@ const env = { ...process.env, [pathKey]: localPath };
 
 run('corepack', ['pnpm', 'run', 'build']);
 run('corepack', ['pnpm', 'run', 'rebuild:electron']);
-run(resolveBin('electron-builder'), ['--win', 'portable']);
+run(resolveBin('electron-builder'), ['--win', 'portable', '--config', 'config/electron-builder.yml']);
 
 function run(command, args) {
   const result = spawnSync(command, args, {

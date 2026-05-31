@@ -1,14 +1,17 @@
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import react from '@vitejs/plugin-react';
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
+
+const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
     build: {
       rollupOptions: {
-        input: resolve(__dirname, 'src/main/index.ts'),
+        input: resolve(projectRoot, 'src/main/index.ts'),
       },
     },
   },
@@ -16,7 +19,7 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     build: {
       rollupOptions: {
-        input: resolve(__dirname, 'src/preload/api.ts'),
+        input: resolve(projectRoot, 'src/preload/api.ts'),
         output: {
           format: 'cjs',
           entryFileNames: '[name].cjs',
@@ -25,11 +28,14 @@ export default defineConfig({
     },
   },
   renderer: {
-    root: '.',
+    root: projectRoot,
     plugins: [react()],
+    css: {
+      postcss: resolve(projectRoot, 'config/postcss.config.js'),
+    },
     build: {
       rollupOptions: {
-        input: resolve(__dirname, 'index.html'),
+        input: resolve(projectRoot, 'index.html'),
       },
     },
   },

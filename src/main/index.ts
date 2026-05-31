@@ -42,7 +42,11 @@ async function bootstrap(): Promise<void> {
   const userDataPath = app.getPath('userData');
   db = openDatabase(userDataPath);
   migrateDatabase(db, userDataPath);
-  const service = new CultivationService(db);
+  const service = new CultivationService(db, {
+    onPendingSessionClosed: (pending) => {
+      mainWindow?.webContents.send('event:pending_session_closed', pending);
+    },
+  });
   const smokeOutputPath = getSmokeOutputPath();
 
   if (smokeOutputPath) {
@@ -189,8 +193,12 @@ function configureApplicationMenu(): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
+function getAppIconPath(): string {
+  return app.isPackaged ? join(process.resourcesPath, 'icon.png') : join(process.cwd(), 'build', 'icon.png');
+}
+
 function createMainWindow(): void {
-  nativeTheme.themeSource = 'dark'; // 设置系统为暗黑模式，令系统自带标题栏变深色
+  nativeTheme.themeSource = 'dark';
 
   mainWindow = new BrowserWindow({
     width: 1180,
@@ -198,7 +206,18 @@ function createMainWindow(): void {
     minWidth: 1024,
     minHeight: 640,
     show: false,
-    backgroundColor: '#0b0e0f', // 设置背景色以防窗口首次创建时产生白屏闪烁
+    backgroundColor: '#06110f',
+    icon: getAppIconPath(),
+    titleBarStyle: 'hidden',
+    ...(process.platform !== 'darwin'
+      ? {
+          titleBarOverlay: {
+            color: '#06110f00',
+            symbolColor: '#d8fff2',
+            height: 44,
+          },
+        }
+      : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/api.cjs'),
       contextIsolation: true,
