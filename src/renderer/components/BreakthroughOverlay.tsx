@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Sparkles } from 'lucide-react';
+
+import { handleModalKeyDown } from '../lib/focus';
 
 interface BreakthroughOverlayProps {
   resourceTitle: string;
@@ -16,6 +18,7 @@ export function BreakthroughOverlay({ resourceTitle, stageName, onClose }: Break
   const [lightningVisible, setLightningVisible] = useState(true);
   const [lightningKey, setLightningKey] = useState(0);
   const [fadingOut, setFadingOut] = useState(false);
+  const confirmButtonRef = useRef<HTMLButtonElement | null>(null);
 
   // Generate 12 falling runic talismans with stable speeds and positions.
   const talismans = useMemo(() => {
@@ -31,6 +34,10 @@ export function BreakthroughOverlay({ resourceTitle, stageName, onClose }: Break
   }, []);
 
   // Rapid lightning flashes at the beginning
+  useEffect(() => {
+    confirmButtonRef.current?.focus();
+  }, []);
+
   useEffect(() => {
     const flashInterval = setInterval(() => {
       setLightningKey((k) => k + 1);
@@ -69,6 +76,10 @@ export function BreakthroughOverlay({ resourceTitle, stageName, onClose }: Break
   return (
     <div
       className={`breakthrough-overlay ${fadingOut ? 'opacity-0 scale-95 pointer-events-none' : ''}`}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="breakthrough-title"
+      onKeyDown={(event) => handleModalKeyDown(event, handleConsolidate)}
       style={{
         transition: 'all 320ms cubic-bezier(0.19, 1, 0.22, 1)',
         isolation: 'isolate'
@@ -165,7 +176,7 @@ export function BreakthroughOverlay({ resourceTitle, stageName, onClose }: Break
       </div>
 
       {/* 5. Glitch Ceremony Texts */}
-      <h1 className="breakthrough-ink-text">功法大成</h1>
+      <h1 id="breakthrough-title" className="breakthrough-ink-text">功法大成</h1>
       <p className="breakthrough-sub-text">
         恭喜道友，成功参悟秘卷：<span className="text-gradient-themed" style={{ fontWeight: 'bold' }}>{resourceTitle}</span>
       </p>
@@ -192,9 +203,11 @@ export function BreakthroughOverlay({ resourceTitle, stageName, onClose }: Break
 
       {/* 6. Consolidate Button */}
       <button
+        ref={confirmButtonRef}
         className="primary-button breakthrough-btn"
         type="button"
         onClick={handleConsolidate}
+        aria-label="巩固境界并关闭突破提示"
         style={{
           background: 'var(--accent-gradient)',
           border: 'none',

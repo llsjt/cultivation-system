@@ -90,8 +90,8 @@ const result = await withApp(9460, userDataDir, async (client) => {
     `(() => {
       const text = Array.from(document.querySelectorAll('button')).map((button) => button.innerText || button.getAttribute('aria-label') || '').join('\\n');
       return {
-        continueHasRealAction: text.includes('打开资料继续学习'),
-        logHasRealAction: text.includes('保存本次学习进度')
+        continueHasRealAction: text.includes('继续学习'),
+        logHasRealAction: text.includes('记录进度')
       };
     })()`,
   );
@@ -148,14 +148,43 @@ const result = await withApp(9460, userDataDir, async (client) => {
           setter.call(input, value);
           input.dispatchEvent(new Event('input', { bubbles: true }));
         };
-        let form = document.querySelector('.side-panel form');
-        if (!form) {
-          document.querySelector('.resource-add-toggle')?.click();
-          await new Promise((resolve) => setTimeout(resolve, 180));
-          form = document.querySelector('.side-panel form');
-        }
-        const input = form.querySelector('input');
+        const openCreateForm = async () => {
+          let form = document.querySelector('.resource-create-form');
+          if (form) return form;
+          const modal = document.querySelector('.modal');
+          modal?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+          const meditationTab = document.querySelector('#app-tab-meditation');
+          if (meditationTab?.getAttribute('aria-selected') !== 'true') {
+            meditationTab?.click();
+            await new Promise((resolve) => setTimeout(resolve, 240));
+          }
+          const buttons = Array.from(document.querySelectorAll('button'));
+          const addButtonCandidates = [
+            document.querySelector('.resource-master-list-title-row button'),
+            ...buttons.filter((item) => item.innerText.includes('添加资料'))
+          ].filter(Boolean);
+          const addButton = addButtonCandidates.find((item) => !item.disabled && item.offsetParent !== null) ?? addButtonCandidates[0];
+          addButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+          addButton?.click();
+          for (let attempts = 0; attempts < 10; attempts += 1) {
+            await new Promise((resolve) => setTimeout(resolve, 120));
+            form = document.querySelector('.resource-create-form');
+            if (form) return form;
+          }
+          throw new Error(JSON.stringify({
+            reason: 'Could not find resource creation form',
+            selectedTab: document.querySelector('[role="tab"][aria-selected="true"]')?.innerText,
+            hasResourcePanel: Boolean(document.querySelector('.resource-panel')),
+            hasResourceActions: Boolean(document.querySelector('.resource-panel-actions')),
+            addButtonCount: addButtonCandidates.length,
+            buttonTexts: buttons.map((item) => item.innerText || item.title || item.getAttribute('aria-label') || '').filter(Boolean).slice(0, 18),
+            bodyText: document.body.innerText.slice(0, 500)
+          }));
+        };
         for (let index = 0; index < 4; index += 1) {
+          const form = await openCreateForm();
+          const input = form.querySelector('#resource-title-input') ?? form.querySelector('input');
+          if (!input) throw new Error('Could not find resource title input');
           setValue(input, 'Toast FIFO ' + index + ' ' + Date.now());
           form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
           await new Promise((resolve) => setTimeout(resolve, 120));
@@ -170,11 +199,13 @@ const result = await withApp(9460, userDataDir, async (client) => {
   const detailOpened = await evaluate(
     client,
     `(async () => {
-      document.querySelector('.resource-row .resource-actions .icon-button')?.click();
+      document.querySelector('.compact-resource-select')?.click();
       await new Promise((resolve) => setTimeout(resolve, 180));
-      const button = Array.from(document.querySelectorAll('.dropdown-menu button')).find((item) => item.innerText.trim() === '详情');
+      const button = document.querySelector('.resource-detail-tools .icon-button') ??
+        Array.from(document.querySelectorAll('button')).find((item) => item.title.includes('查看资料详情'));
       button?.click();
-      return Boolean(button);
+      await new Promise((resolve) => setTimeout(resolve, 180));
+      return Boolean(document.querySelector('.modal'));
     })()`,
   );
   await sleep(700);
@@ -273,7 +304,7 @@ async function openStudyLogModal(client) {
   const opened = await evaluate(
     client,
     `(() => {
-      const button = Array.from(document.querySelectorAll('button')).find((item) => item.innerText.includes('保存本次学习进度'));
+      const button = Array.from(document.querySelectorAll('button')).find((item) => item.innerText.includes('记录进度'));
       button?.click();
       return Boolean(button);
     })()`,
@@ -312,7 +343,7 @@ async function runUiTiming(client) {
         };
         const timings = [];
         for (let index = 0; index < 5; index += 1) {
-          const openButton = Array.from(document.querySelectorAll('button')).find((item) => item.innerText.includes('保存本次学习进度'));
+          const openButton = Array.from(document.querySelectorAll('button')).find((item) => item.innerText.includes('记录进度'));
           openButton.click();
           await new Promise((resolve) => setTimeout(resolve, 250));
           const modal = document.querySelector('.modal');

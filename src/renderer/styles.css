@@ -14,12 +14,13 @@
 
 :root {
   color-scheme: dark;
-  --bg: #0b0e0f;
-  --surface: #14191a;
-  --surface-strong: #1e2621;
-  --surface-soft: #0e1213;
-  --line: #424e41;
-  --line-strong: #8a733e; /* 金铜古色 */
+  --bg: #050708;            /* 极度压暗背景至玄墨黑 */
+  --surface-deep: #080b0c;
+  --surface: #0c0f10;       /* 面板下沉，增加阴影深度 */
+  --surface-soft: #090c0d;
+  --surface-strong: #111617;
+  --line: rgba(138, 166, 143, 0.08); /* 极度克制的淡绿微澜线 */
+  --line-strong: rgba(230, 185, 93, 0.18); /* 古铜金边框进行半透明弱化 */
   --text: #ece8dc;
   --muted: #a69e8d;
   --accent: #b88d3e;
@@ -37,13 +38,43 @@
   --meander-corner: url("data:image/svg+xml,%3Csvg width='56' height='56' viewBox='0 0 56 56'%3E%3Cpath d='M6 6h36v10H18v10h28v10H8v14' fill='none' stroke='%23b88d3e' stroke-width='2' stroke-linecap='square' stroke-linejoin='miter' opacity='.72'/%3E%3Cpath d='M12 12h22' fill='none' stroke='%23e6b95d' stroke-width='1' opacity='.55'/%3E%3C/svg%3E");
   font-family:
     Inter, "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* 境界核心发光及文字颜色变量定义 (供组件及流光自动继承) */
+  --realm-glow-primary: 230 185 93;   /* 古铜金 RGB */
+  --realm-glow-secondary: 184 141 62; /* 辅金 RGB */
+  --realm-button-text: #110e08;        /* 按钮文字的高阅读对比度 */
+
+  /* ---- 排版尺度（type scale）：全局字号单一来源，避免散落的 14/14.5/15.5px ---- */
+  --fs-xs: 12px;    /* 角标 / 极次要标注 */
+  --fs-sm: 14px;    /* 次要信息、表格、徽章 */
+  --fs-base: 16px;  /* 正文基准 */
+  --fs-md: 18px;    /* 强调正文 / 小节标题 */
+  --fs-lg: 20px;    /* 区块标题 / eyebrow */
+  --fs-xl: 24px;    /* 面板主标题 */
+  --fs-2xl: 28px;   /* 页面级 hero 标题 */
+
+  /* ---- 间距节奏（4/8 栅格）：新样式优先引用，存量逐步收敛 ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* ---- 内容区最大阅读宽度：宽屏下约束行长，避免正文被拉伸 ---- */
+  --content-max: 1360px;
+
+  /* ---- 响应式断点单一来源（仅文档约定，媒体查询需用字面量）：
+     桌面常规 > 1320px；窄窗 ≤ 1320px（header 重排）；极窄 ≤ 900px（单列）。
+     不再为 ≤720px 的手机宽度做适配——本应用为 Electron 桌面端。 ---- */
 }
 
 body {
   margin: 0;
   background: var(--bg, #0b0e0f);
   color: var(--text, #ece8dc);
-  font-size: 16px;
+  font-size: var(--fs-base);
   line-height: 1.5;
   overflow: hidden; /* 防止双滚动条 */
 }
@@ -153,7 +184,7 @@ button:focus-visible {
     radial-gradient(circle at 80% 30%, rgb(var(--success-rgb) / 0.25), transparent 24%),
     radial-gradient(circle at 55% 82%, rgb(var(--danger-rgb) / 0.15), transparent 24%);
   filter: blur(28px);
-  animation: ambient-breath 9s ease-in-out infinite alternate;
+  /* 静态化：全屏 blur 层逐帧缩放会强制重绘+重合成，改为静态光斑由 GPU 缓存合成 */
 }
 
 .app-shell > * {
@@ -887,21 +918,53 @@ button:focus-visible {
 }
 
 .primary-button {
-  border-color: var(--accent-strong, #e6b95d);
-  background: linear-gradient(180deg, var(--accent-strong, #e6b95d), var(--accent, #b88d3e) 56%, #6e4e1a);
-  color: var(--on-accent, #110e08);
+  position: relative;
+  border-color: rgba(255, 255, 255, 0.24) !important;
+  background: linear-gradient(180deg, var(--accent-strong, #e6b95d), var(--accent, #b88d3e) 60%, rgba(0, 0, 0, 0.4)) !important;
+  color: var(--realm-button-text) !important;
+  font-weight: 800;
+  text-shadow: 0 0.5px 1px rgba(255, 255, 255, 0.25);
   box-shadow:
-    0 0 0 1px rgba(255,255,255,0.15) inset,
-    0 4px 10px rgba(0,0,0,0.3);
-  text-shadow: 0 0.5px 0.5px rgba(255,255,255,0.15);
+    0 1px 0 rgba(255, 255, 255, 0.3) inset, /* 顶部高光扫线 */
+    0 4px 12px rgba(0, 0, 0, 0.5) !important; /* 底部实体阴影 */
+  z-index: 1;
+  overflow: visible; /* 保证发光层不被卡断 */
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+  will-change: transform;
+}
+
+/* 极阳发光层：利用绝对定位的伪元素承载 box-shadow，实现 GPU 级别的呼吸发光 */
+.primary-button::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 6px;
+  background: transparent;
+  pointer-events: none;
+  z-index: -1;
+  /* UI特调：三层发光叠合 */
+  box-shadow:
+    0 0 6px rgb(var(--realm-glow-primary) / 0.8),    /* 第一层：热点强光 */
+    0 0 16px rgb(var(--realm-glow-secondary) / 0.45), /* 第二层：环境散光 */
+    0 0 32px rgb(var(--realm-glow-primary) / 0.2) !important;   /* 第三层：大范围柔光 */
+  opacity: 0.25; /* 静态默认不透明度 */
+  transition: opacity 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  will-change: opacity;
 }
 
 .primary-button:hover {
-  box-shadow:
-    0 0 0 1px var(--accent-strong, #e6b95d),
-    0 0 12px rgb(var(--accent-strong-rgb) / 0.4),
-    0 4px 10px rgba(0,0,0,0.3);
-  transform: translateY(-1px);
+  transform: translateY(-2px) !important;
+}
+
+.primary-button:hover::after {
+  opacity: 0.95; /* 悬浮时，发光图层瞬间充盈饱满 */
+}
+
+/* 挂载心跳呼吸动画 */
+.primary-button.aura-active::after,
+.hero-panel .primary-button::after,
+.breakthrough-action-btn::after {
+  animation: aura-gpu-breath 3.6s infinite cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .secondary-button {
@@ -1171,11 +1234,6 @@ button:focus-visible {
 
 
 /* ==================== ANIMATIONS ==================== */
-@keyframes ambient-breath {
-  from { transform: translate3d(-0.5%, -0.5%, 0) scale(1); }
-  to { transform: translate3d(0.5%, 0.5%, 0) scale(1.02); }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -1190,6 +1248,14 @@ button:focus-visible {
   .progress-wrap span::after {
     animation: none !important;
   }
+}
+
+/* 窗口失焦 / 标签页不可见时暂停常驻动画，避免桌面应用切到后台仍持续占用 GPU */
+.app-shell[data-anim-paused="true"],
+.app-shell[data-anim-paused="true"] *,
+.app-shell[data-anim-paused="true"] *::before,
+.app-shell[data-anim-paused="true"] *::after {
+  animation-play-state: paused !important;
 }
 
 
@@ -1248,13 +1314,6 @@ button:focus-visible {
 
   .hero-panel .actions button {
     width: 100%;
-  }
-}
-
-@media (max-width: 720px) {
-  .resource-form,
-  .detail-list {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -1417,22 +1476,11 @@ button:focus-visible {
 
 .success-text-glow {
   color: var(--success) !important;
-  text-shadow: 0 0 8px rgb(var(--success-rgb) / 0.6) !important;
-  animation: status-breath-success 2.5s ease-in-out infinite alternate;
+  text-shadow: 0 0 10px rgb(var(--success-rgb) / 0.7) !important;
 }
 .cinnabar-text-glow {
   color: var(--cinnabar) !important;
-  text-shadow: 0 0 8px rgb(var(--danger-rgb) / 0.6) !important;
-  animation: status-breath-danger 1.8s ease-in-out infinite alternate;
-}
-
-@keyframes status-breath-success {
-  from { text-shadow: 0 0 4px rgb(var(--success-rgb) / 0.3); }
-  to { text-shadow: 0 0 12px rgb(var(--success-rgb) / 0.85); }
-}
-@keyframes status-breath-danger {
-  from { text-shadow: 0 0 4px rgb(var(--danger-rgb) / 0.3); }
-  to { text-shadow: 0 0 12px rgb(var(--danger-rgb) / 0.95); }
+  text-shadow: 0 0 10px rgb(var(--danger-rgb) / 0.7) !important;
 }
 
 /* ==================== 🌋 破境成功全屏动效仪式 (Breakthrough Ceremony) ==================== */
@@ -2424,35 +2472,6 @@ button:focus-visible {
 
 
 
-@media (max-width: 720px) {
-  .content-body {
-    padding: 20px 16px 24px;
-  }
-
-  .content-header {
-    height: auto;
-    min-height: 64px;
-    padding: 10px 16px;
-  }
-
-  .hero-panel,
-  .detail-panel,
-  .wukong-profile-panel {
-    padding: 18px;
-  }
-
-  .hero-panel .actions,
-  .pending-strip {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .hero-panel .actions button,
-  .pending-strip button {
-    width: 100%;
-  }
-}
-
 /* ==================== 境界差异强化 ==================== */
 .app-shell {
   --realm-stage-mark: "炼";
@@ -3011,7 +3030,7 @@ button:focus-visible {
     rgb(var(--realm-primary-rgb) / 0.58),
     rgb(var(--realm-secondary-rgb) / 0.46),
     rgb(var(--realm-tertiary-rgb) / 0.38),
-    transparent
+    transparen
   );
 }
 
@@ -3191,4 +3210,2130 @@ button:focus-visible {
     0 0 54px rgb(var(--realm-primary-rgb) / 0.22),
     0 0 120px rgb(var(--realm-secondary-rgb) / 0.14),
     0 0 170px rgb(var(--realm-tertiary-rgb) / 0.1);
+}
+
+/* ==================== 🪐 TAB NAVIGATION STYLES 🪐 ==================== */
+.tab-nav {
+  display: flex;
+  flex: 0 1 auto;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(var(--realm-primary-rgb, 34 211 238) / 0.22);
+  border-radius: 6px;
+  padding: 3px;
+}
+
+.tab-btn {
+  font-family: "InkBrushTitle", serif;
+  font-size: 13px;
+  padding: 4px 14px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted, #a69e8d);
+  transition: all 220ms ease;
+  min-height: auto;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tab-btn:hover {
+  color: var(--accent, #e6b95d);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.tab-btn.active,
+.tab-btn[aria-selected="true"] {
+  border-color: rgba(var(--realm-primary-rgb, 34 211 238) / 0.44);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent), rgb(var(--realm-deep-rgb, 14 30 48) / 0.72) !important;
+  color: var(--accent-strong, #e6b95d) !important;
+  text-shadow: 0 0 8px rgb(var(--realm-primary-rgb, 34 211 238) / 0.4);
+  box-shadow: inset 0 0 6px rgb(var(--realm-primary-rgb, 34 211 238) / 0.08);
+}
+
+.tab-panel {
+  min-width: 0;
+  width: 100%;
+}
+
+/* ==================== 📖 MASTER-DETAIL DOUBLE COLUMN STYLES 📖 ==================== */
+.resource-double-column {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1.2fr);
+  border: 1px solid var(--line-strong, #8a733e);
+  border-radius: 8px;
+  background:
+    radial-gradient(130% 60% at 50% 10%, rgb(var(--realm-primary-rgb, 34 211 238) / 0.06), transparent 60%),
+    var(--surface-soft, #0e1213);
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  height: 520px;
+}
+
+.resource-master-list {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line, #424e41);
+  background: rgba(0, 0, 0, 0.18);
+  height: 100%;
+}
+
+.resource-master-list-header {
+  padding: 12px;
+  border-bottom: 1px solid var(--line, #424e41);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.resource-search-input {
+  padding: 6px 10px;
+  font-size: var(--fs-sm);
+  border-radius: 6px;
+  min-height: 28px;
+}
+
+.resource-filter-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.resource-filter-select {
+  padding: 4px 6px;
+  font-size: var(--fs-xs);
+  border-radius: 4px;
+  min-height: 24px;
+  flex: 1;
+}
+
+.resource-master-list-scroller {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compact-resource-card {
+  padding: 10px 12px;
+  border: 1px solid var(--line, #424e41);
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent), rgba(0, 0, 0, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  transition: all 180ms ease;
+  cursor: pointer;
+  position: relative;
+  text-align: left;
+}
+
+.compact-resource-card:hover {
+  border-color: rgba(var(--realm-secondary-rgb) / 0.5) !important;
+  background: rgba(var(--realm-secondary-rgb) / 0.04) !important;
+  transform: translateX(1px);
+}
+
+.compact-resource-card.active {
+  border-color: rgb(var(--realm-primary-rgb)) !important;
+  background: linear-gradient(90deg, rgba(var(--realm-primary-rgb) / 0.12), rgba(0,0,0,0.1)), rgba(var(--realm-deep-rgb) / 0.6) !important;
+  box-shadow: 0 0 10px rgba(var(--realm-primary-rgb) / 0.14) !important;
+}
+
+.compact-resource-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.compact-resource-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text, #ece8dc);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.compact-resource-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-xs);
+  color: var(--muted, #a69e8d);
+}
+
+.compact-resource-play {
+  padding: 4px;
+  min-height: auto;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border-color: rgb(var(--realm-primary-rgb) / 0.5);
+  background: rgba(var(--realm-primary-rgb) / 0.1);
+  color: rgb(var(--realm-primary-rgb));
+  transition: all 180ms ease;
+}
+
+.compact-resource-play:hover {
+  background: rgb(var(--realm-primary-rgb));
+  color: #0b0e0f;
+  transform: scale(1.06);
+}
+
+/* ==================== 🏮 DETAIL PANE STYLES 🏮 ==================== */
+.resource-detail-pane {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  height: 100%;
+  position: relative;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* Meander corner decoration for detail pane */
+.resource-detail-pane::before {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 28px;
+  height: 28px;
+  pointer-events: none;
+  content: "";
+  background-image: var(--meander-corner);
+  background-repeat: no-repeat;
+  background-size: contain;
+  opacity: 0.28;
+}
+
+.resource-detail-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  height: 100%;
+  color: var(--muted, #a69e8d);
+  text-align: center;
+  padding: 40px;
+}
+
+.resource-detail-empty h3 {
+  font-family: "InkBrushTitle", serif;
+  font-size: 18px;
+  color: var(--accent-strong, #e6b95d);
+  margin: 0;
+}
+
+.resource-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px dashed rgba(var(--realm-primary-rgb) / 0.3);
+  padding-bottom: 12px;
+  gap: 12px;
+}
+
+.resource-detail-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.resource-detail-header-left h2 {
+  font-family: "InkBrushTitle", serif;
+  font-size: 20px;
+  color: var(--text, #ece8dc);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.resource-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.resource-detail-desc {
+  font-size: var(--fs-sm);
+  color: var(--text);
+  line-height: 1.5;
+  background: rgba(0, 0, 0, 0.16);
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+}
+
+.resource-detail-next-target {
+  font-size: var(--fs-sm);
+  background: rgba(var(--realm-primary-rgb, 34 211 238) / 0.05);
+  border-left: 3px solid rgb(var(--realm-primary-rgb));
+  padding: 10px 12px;
+  border-radius: 0 6px 6px 0;
+}
+
+.resource-detail-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  background: rgba(0,0,0,0.1);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+}
+
+.resource-detail-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.resource-detail-meta-item strong {
+  color: var(--text);
+}
+
+.resource-detail-logs-title {
+  font-family: "InkBrushTitle", serif;
+  font-size: 15px;
+  color: rgb(var(--realm-primary-rgb));
+  border-bottom: 1px solid rgba(var(--realm-primary-rgb) / 0.2);
+  padding-bottom: 4px;
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.resource-detail-logs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 145px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.resource-detail-log-card {
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(var(--realm-primary-rgb) / 0.18);
+  border-radius: 6px;
+  font-size: var(--fs-xs);
+  transition: all 180ms ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.resource-detail-log-card:hover {
+  border-color: rgba(var(--realm-primary-rgb) / 0.36);
+  background: rgba(var(--realm-primary-rgb) / 0.03);
+}
+
+.resource-detail-log-card-header {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* ==================== 🏛 GLOBAL LIBRARY PANELS 🏛 ==================== */
+.global-library-panel {
+  border: 1px solid var(--line-strong, #8a733e);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(0,0,0,0.2)), var(--surface, #14191a);
+  padding: 22px 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.library-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(110px, 1fr) minmax(110px, 1fr) minmax(110px, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.library-table-container {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid var(--line, #424e41);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  max-height: 480px;
+}
+
+.library-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--fs-sm);
+}
+
+.library-table th {
+  position: sticky;
+  top: 0;
+  background: rgb(var(--realm-deep-rgb, 14 30 48));
+  border-bottom: 2px solid rgba(var(--realm-primary-rgb) / 0.44);
+  padding: 10px 12px;
+  font-weight: 700;
+  color: rgb(var(--realm-primary-rgb));
+  z-index: 2;
+  font-family: "InkBrushTitle", serif;
+  font-size: 15px;
+}
+
+.library-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line, #424e41);
+  vertical-align: middle;
+}
+
+.library-table tr {
+  transition: all 180ms ease;
+}
+
+.library-table tr:hover {
+  background: rgba(var(--realm-primary-rgb) / 0.05) !important;
+}
+
+.library-table-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.library-table-actions button {
+  min-height: 26px;
+  font-size: 11px;
+  padding: 2px 8px;
+}
+
+/* ==================== 🌌 ANALYTICS DASHBOARD STYLES 🌌 ==================== */
+.analytics-panel {
+  border: 1px solid var(--line-strong, #8a733e);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(0,0,0,0.2)), var(--surface, #14191a);
+  padding: 22px 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.analytics-overview-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.analytics-card {
+  padding: 16px;
+  border: 1px solid var(--line, #424e41);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent), rgba(0, 0, 0, 0.16);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+  transition: all 220ms ease;
+}
+
+.analytics-card:hover {
+  border-color: rgba(var(--realm-primary-rgb) / 0.4);
+  background: rgba(var(--realm-primary-rgb) / 0.03);
+}
+
+.analytics-card .val {
+  font-size: 26px;
+  font-weight: 800;
+  color: rgb(var(--realm-primary-rgb));
+  text-shadow: 0 0 10px rgba(var(--realm-primary-rgb) / 0.3);
+}
+
+.analytics-card .label {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: "InkBrushTitle", serif;
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.radar-chart-container {
+  border: 1px solid var(--line, #424e41);
+  border-radius: 8px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 380px;
+}
+
+.timeline-container {
+  border: 1px solid var(--line, #424e41);
+  border-radius: 8px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 380px;
+}
+
+.timeline-container h3 {
+  font-family: "InkBrushTitle", serif;
+  color: var(--accent-strong);
+  margin: 0;
+  font-size: 16px;
+}
+
+.analytics-timeline-scroller {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.analytics-timeline-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  position: relative;
+  padding-bottom: 4px;
+}
+
+.analytics-timeline-item::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 14px;
+  bottom: -16px;
+  width: 1px;
+  background: var(--line);
+}
+
+.analytics-timeline-item:last-child::before {
+  display: none;
+}
+
+.analytics-timeline-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 99px;
+  background: rgb(var(--realm-primary-rgb));
+  border: 2px solid #000;
+  box-shadow: 0 0 6px rgb(var(--realm-primary-rgb));
+  margin-top: 3px;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.analytics-timeline-content {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+
+.analytics-timeline-header {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.analytics-timeline-header strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.analytics-timeline-header span {
+  flex-shrink: 0;
+}
+
+.analytics-timeline-body {
+  font-size: var(--fs-xs);
+  color: var(--text);
+}
+
+@media (max-width: 1100px) {
+  .content-header {
+    gap: 10px;
+  }
+
+  .tab-nav {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .tab-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-width: 72px;
+  }
+}
+
+@media (max-width: 900px) {
+  .content-header {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 64px;
+    padding-block: 10px;
+  }
+
+  .breadcrumb {
+    flex: 1 1 220px;
+    min-width: 0;
+  }
+
+  .tab-nav {
+    order: 3;
+    width: 100%;
+  }
+}
+
+/* ==================== READABILITY PASS ==================== */
+body {
+  font-size: var(--fs-base);
+}
+
+input,
+select,
+textarea {
+  min-height: 44px;
+  padding: 11px 13px;
+  font-size: var(--fs-base);
+  line-height: 1.45;
+}
+
+.primary-button,
+.secondary-button,
+.ghost-button,
+.danger-button {
+  min-height: 40px;
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+}
+
+.sidebar {
+  width: 324px;
+}
+
+.sidebar-header h1 {
+  font-size: 22px;
+}
+
+.save-status,
+.breadcrumb,
+.hero-panel .eyebrow,
+.hero-panel .next-action,
+.panel-heading .eyebrow,
+.resource-row p,
+.resource-row .next-action,
+.pending-strip strong,
+.pending-strip span,
+.modal label,
+.field-hint,
+.detail-list dt,
+.detail-list dd {
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.sidebar-section-header h2,
+.project-name,
+.resource-row h3 {
+  font-size: 16px;
+  line-height: 1.38;
+}
+
+.project-meta {
+  font-size: 15px;
+  line-height: 1.42;
+}
+
+.list-item {
+  padding: 14px;
+}
+
+.content-grid {
+  grid-template-columns: minmax(0, 1.62fr) minmax(330px, 0.82fr);
+}
+
+.wukong-profile-panel {
+  padding: 26px 22px;
+  gap: 24px;
+}
+
+.wukong-profile-header h2 {
+  font-size: 24px;
+}
+
+.wukong-stat-group-header {
+  padding: 7px 10px;
+  font-size: 16px;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+.wukong-stat-item {
+  padding: 6px 8px;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.log-item-content strong,
+.log-item-content small {
+  font-size: 15px;
+  line-height: 1.42;
+}
+
+.progress-wrap {
+  height: 24px;
+}
+
+.progress-wrap strong {
+  font-size: 15px;
+}
+
+.tab-btn {
+  min-height: 42px;
+  padding: 9px 24px;
+  font-size: 18px;
+  font-weight: 800;
+  color: rgba(247, 241, 223, 0.86);
+}
+
+.tab-btn.active,
+.tab-btn[aria-selected="true"] {
+  color: var(--accent-strong, #e6b95d) !important;
+}
+
+.hero-panel .eyebrow,
+.panel-heading .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--accent-strong, #e6b95d);
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.85),
+    0 0 12px rgb(var(--accent-strong-rgb) / 0.42);
+}
+
+.hero-panel .eyebrow::before,
+.hero-panel .eyebrow::after,
+.panel-heading .eyebrow::before,
+.panel-heading .eyebrow::after {
+  font-size: 1em;
+}
+
+.resource-double-column {
+  grid-template-columns: 320px minmax(0, 1fr);
+  height: min(620px, calc(100vh - 300px));
+  min-height: 540px;
+}
+
+.resource-master-list-header {
+  gap: 10px;
+}
+
+.resource-search-input,
+.resource-filter-select {
+  min-height: 36px;
+  font-size: 15px;
+}
+
+.compact-resource-card {
+  padding: 12px 14px;
+}
+
+.compact-resource-title {
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.compact-resource-meta {
+  font-size: var(--fs-sm);
+}
+
+.compact-resource-play {
+  width: 32px;
+  height: 32px;
+}
+
+.resource-detail-header-left h2 {
+  font-size: var(--fs-xl);
+  line-height: 1.35;
+}
+
+.resource-detail-desc,
+.resource-detail-next-target {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.resource-detail-meta-item {
+  align-items: flex-start;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: normal;
+}
+
+.resource-detail-logs-title {
+  font-size: 16px;
+}
+
+.resource-detail-log-card {
+  padding: 10px 12px;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+
+.resource-detail-log-card-header {
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.library-table {
+  font-size: 15px;
+}
+
+.library-table th {
+  font-size: 16px;
+}
+
+.library-table-actions button {
+  min-height: 30px;
+  padding: 4px 9px;
+  font-size: 14px;
+}
+
+.analytics-card .label {
+  font-size: var(--fs-sm);
+}
+
+.analytics-timeline-header {
+  font-size: 14px;
+}
+
+.analytics-timeline-body {
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.text-xs {
+  font-size: 14px !important;
+  line-height: 1.45;
+}
+
+.text-sm {
+  font-size: 15px !important;
+  line-height: 1.45;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: 100% !important;
+  }
+
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .resource-double-column {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 0;
+  }
+
+  .resource-master-list {
+    max-height: 340px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line, #424e41);
+  }
+}
+
+/* ==========================================================================
+   🎨 境界色彩重塑与 GPU 硬件级灵气流光系统 (Architect & Designer Spec)
+   ========================================================================== */
+
+/* --- 1. GPU 零开销硬件加速动画声明 --- */
+
+/* 灵力心跳脉冲呼吸 */
+@keyframes aura-gpu-breath {
+  0%, 100% {
+    opacity: 0.18;
+    transform: scale(1) translateZ(0);
+  }
+  50% {
+    opacity: 0.88;
+    transform: scale(1.022) translateZ(0); /* 微缩放，模拟灵气吞吐 */
+  }
+}
+
+/* 灵力圆环自转 */
+@keyframes qi-flow-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --- 2. 境界专属发光色彩与对比度继承声明 --- */
+
+/* 炼气期 (翡翠木灵) */
+.theme-lianqi {
+  --realm-glow-primary: 143 255 212;   /* 极亮翡翠 RGB */
+  --realm-glow-secondary: 62 212 159;  /* 灵叶绿 RGB */
+  --realm-button-text: #05140e;        /* 保证深绿底色对比度 */
+}
+
+/* 筑基期 (沧海冰晶) */
+.theme-zhuji {
+  --realm-glow-primary: 157 232 255;   /* 冰晶白蓝 RGB */
+  --realm-glow-secondary: 79 169 230;  /* 沧海蓝 RGB */
+  --realm-button-text: #04121c;        /* 保证冰深蓝对比度 */
+}
+
+/* 金丹期 (纯阳烈金) */
+.theme-jindan {
+  --realm-glow-primary: 255 211 107;   /* 金乌纯金 RGB */
+  --realm-glow-secondary: 217 143 36;  /* 耀阳橙 RGB */
+  --realm-button-text: #170d02;        /* 保证纯阳金对比度 */
+}
+
+/* 元婴期 (玄冥鸿蒙紫) */
+.theme-yuanying {
+  --realm-glow-primary: 215 194 255;   /* 极光紫白 RGB */
+  --realm-glow-secondary: 155 120 241;  /* 鸿蒙深紫 RGB */
+  --realm-button-text: #12081d;        /* 保证紫晶底色对比度 */
+}
+
+/* 化神期 (归墟羽仙白/绿) */
+.theme-huashen {
+  --realm-glow-primary: 246 255 248;
+  --realm-glow-secondary: 147 175 166;
+  --realm-button-text: #0a110f;
+}
+
+/* --- 3. 推荐资源卡片：磨砂玉简流光边框重构 --- */
+
+.resource-row.recommended-active {
+  position: relative !important;
+  background: var(--surface-soft) !important;
+  border: 1px solid transparent !important; /* 取消硬线条，交由流光图层描边 */
+  border-radius: 8px !important;
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.6),
+    inset 0 0 12px rgb(var(--realm-glow-primary) / 0.08) !important;
+  z-index: 1;
+  overflow: hidden !important; /* 隐藏边缘的 conic 大旋转块，仅留出边框 */
+  will-change: transform;
+}
+
+/* Conic 流光载体 */
+.resource-row.recommended-active::before {
+  content: "" !important;
+  position: absolute !important;
+  top: -50% !important;
+  left: -50% !important;
+  width: 200% !important;
+  height: 200% !important;
+  background: conic-gradient(
+    from 0deg,
+    transparent 42%,
+    rgb(var(--realm-glow-primary)) 50%,
+    transparent 58%
+  ) !important;
+  animation: qi-flow-spin 7.5s linear infinite !important;
+  pointer-events: none !important;
+  opacity: 0.35 !important;
+  z-index: -2 !important;
+  will-change: transform;
+}
+
+/* 面板内部遮罩，精确内缩 1.5 像素以渲染极致的硬件流光边线 */
+.resource-row.recommended-active::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 1.5px !important; /* 精巧收缩形成 1.5px 极细流金/流银描边 */
+  background: var(--surface-soft) !important;
+  border-radius: 6.5px !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+  backdrop-filter: blur(16px) !important; /* 磨砂玉简质感 */
+}
+
+/* ==========================================================================
+   🏛️ 系统外壳专属皮肤 (Constant System Shell Level - Left Sidebar & Top Header)
+   ========================================================================== */
+
+/* 强制锁死左侧侧边栏 (.sidebar) 视觉层级，永恒不变，绝不与任何境界色冲突 */
+.app-shell.theme-lianqi .sidebar,
+.app-shell.theme-zhuji .sidebar,
+.app-shell.theme-jindan .sidebar,
+.app-shell.theme-yuanying .sidebar,
+.app-shell.theme-huashen .sidebar,
+.sidebar {
+  /* 恒定深邃玄墨玉石渐变底色，搭配古雅纸质纹理 */
+  background:
+    radial-gradient(88% 80% at 14% 0%, rgba(203, 181, 132, 0.05), transparent 56%),
+    linear-gradient(180deg, rgba(8, 12, 14, 0.96) 0%, rgba(4, 6, 7, 0.99) 100%),
+    var(--paper-grain) !important;
+  border-right: 1px solid rgba(138, 115, 62, 0.22) !important; /* 恒定古铜金微细边框 */
+  backdrop-filter: blur(20px) !important;
+  box-shadow: 6px 0 30px rgba(0, 0, 0, 0.6) !important;
+
+  /* 强行锁死系统级变量，不随境界切换而改变 */
+  --accent-strong: #e6c387 !important; /* 恒定雅致软金色 */
+  --accent-strong-rgb: 230 195 135 !important;
+  --accent: #cbb584 !important; /* 恒定古雅铜金 */
+  --accent-rgb: 203 181 132 !important;
+  --line-strong: rgba(203, 181, 132, 0.38) !important;
+  --line: rgba(203, 181, 132, 0.15) !important;
+  --text: #ece8dc !important; /* 恒定宣纸白 */
+  --muted: #a69e8d !important; /* 柔灰 */
+  --surface-soft: rgba(10, 14, 16, 0.65) !important;
+  --surface-strong: rgba(18, 24, 28, 0.85) !important;
+  --accent-gradient: linear-gradient(135deg, #ffffff, #ece8dc, #cbb584) !important;
+}
+
+/* 强制锁死系统顶栏 (.content-header) 视觉层级，永恒不变 */
+.app-shell.theme-lianqi .content-header,
+.app-shell.theme-zhuji .content-header,
+.app-shell.theme-jindan .content-header,
+.app-shell.theme-yuanying .content-header,
+.app-shell.theme-huashen .content-header,
+.content-header {
+  background:
+    linear-gradient(180deg, rgba(8, 12, 14, 0.92) 0%, rgba(5, 8, 9, 0.78) 100%) !important;
+  border-bottom: 1px solid rgba(138, 115, 62, 0.2) !important; /* 恒定古铜金微细底边 */
+  backdrop-filter: blur(20px) !important;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* 顶栏文字及面包屑系统色，保证永不冲突 */
+.content-header .breadcrumb strong {
+  background: linear-gradient(135deg, #ffffff 0%, #ece8dc 50%, #cbb584 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  text-shadow: 0 0 12px rgba(203, 181, 132, 0.25) !important;
+}
+
+.content-header .breadcrumb .muted {
+  color: #a69e8d !important;
+}
+
+/* 顶栏系统级导航 Tab 按钮 (.tab-btn) 样式恒定 */
+.content-header .tab-btn {
+  color: #a69e8d !important;
+  transition: all 260ms cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+}
+
+.content-header .tab-btn:hover {
+  color: #e6c387 !important;
+  background: rgba(230, 195, 135, 0.05) !important;
+  border-color: rgba(230, 195, 135, 0.15) !important;
+}
+
+.content-header .tab-btn.active,
+.content-header .tab-btn[aria-selected="true"] {
+  border-color: rgba(203, 181, 132, 0.38) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent),
+    rgba(14, 18, 20, 0.8) !important;
+  color: #e6c387 !important; /* 恒定雅致软金色 */
+  text-shadow: 0 0 8px rgba(230, 195, 135, 0.4) !important;
+  box-shadow:
+    inset 0 0 6px rgba(230, 195, 135, 0.08),
+    0 4px 15px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 侧边栏内部元素微调 */
+.sidebar .logo-icon {
+  color: #e6c387 !important;
+  text-shadow: 0 0 10px rgba(230, 195, 135, 0.35) !important;
+}
+
+.sidebar h1 {
+  color: #fdfaf2 !important;
+  text-shadow: 0 1px 2px #040505 !important;
+}
+
+/* 侧边栏列表行（修炼方向卡片）系统化风格，不冲突任何内容 */
+.sidebar .list-item {
+  border-color: rgba(203, 181, 132, 0.18) !important;
+  background: rgba(10, 14, 16, 0.4) !important;
+}
+
+.sidebar .list-item:hover {
+  border-color: rgba(230, 195, 135, 0.4) !important;
+  background: rgba(230, 195, 135, 0.04) !important;
+}
+
+.sidebar .list-item.active {
+  border-color: #e6c387 !important;
+  background:
+    linear-gradient(90deg, rgba(230, 195, 135, 0.12), rgba(0, 0, 0, 0.3)),
+    rgba(22, 28, 30, 0.8) !important;
+  box-shadow: 0 0 12px rgba(230, 195, 135, 0.15) !important;
+}
+
+.sidebar .list-item.active::before {
+  background: #e6c387 !important;
+}
+
+.sidebar .project-dot {
+  color: rgba(203, 181, 132, 0.5) !important;
+}
+
+.sidebar .list-item.active .project-dot {
+  color: #e6c387 !important;
+  text-shadow: 0 0 6px rgba(230, 195, 135, 0.5) !important;
+}
+
+.sidebar .new-project-toggle:hover,
+.sidebar .new-project-toggle.active {
+  color: #e6c387 !important;
+  background: rgba(230, 195, 135, 0.08) !important;
+  border-color: rgba(230, 195, 135, 0.22) !important;
+}
+
+/* ==========================================================================
+   Layout optimization pass
+   ========================================================================== */
+.content-area,
+.main-column,
+.tab-panel,
+.resource-detail-pane,
+.compact-resource-card-main,
+.resource-detail-header-left {
+  min-width: 0;
+}
+
+.sidebar {
+  width: clamp(300px, 19vw, 348px) !important;
+}
+
+.project-name {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.content-header {
+  display: grid !important;
+  grid-template-columns: minmax(220px, 1fr) minmax(360px, auto) minmax(128px, max-content);
+  gap: 16px;
+  min-height: 64px;
+  height: 64px !important;
+  padding: 0 clamp(20px, 2vw, 32px) !important;
+}
+
+.content-header .breadcrumb {
+  min-width: 0;
+}
+
+.content-header .breadcrumb strong {
+  max-width: 100% !important;
+}
+
+.tab-nav {
+  justify-self: center;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.tab-btn-spirit {
+  flex: 0 0 clamp(220px, 22vw, 374px);
+  justify-content: center;
+  margin-left: clamp(12px, 3vw, 48px);
+}
+
+.content-header > div:last-child {
+  justify-self: end;
+}
+
+.content-header button,
+.content-header .tab-nav {
+  -webkit-app-region: no-drag;
+}
+
+.content-body {
+  padding: clamp(18px, 1.8vw, 28px) clamp(20px, 2vw, 32px) 28px !important;
+  gap: clamp(18px, 1.8vw, 24px);
+}
+
+/* 宽屏阅读宽度约束：内容居中并限制行长，避免在 2K/4K/带鱼屏上正文被拉伸到难以扫读 */
+.content-body > .pending-strip,
+.content-body > .content-grid,
+.content-body > .tab-panel {
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+}
+
+.content-grid {
+  grid-template-columns: minmax(0, 1fr) clamp(360px, 28vw, 430px) !important;
+  gap: clamp(20px, 2.1vw, 32px);
+}
+
+.meditation-grid {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.spirit-panel .wukong-profile-panel {
+  position: relative;
+  top: auto;
+  max-height: none;
+  width: 100%;
+}
+
+.hero-panel {
+  padding: clamp(20px, 2vw, 28px) clamp(22px, 2.3vw, 34px) !important;
+}
+
+.hero-panel h2 {
+  max-width: 24ch;
+  font-size: clamp(24px, 2.1vw, 32px) !important;
+}
+
+.hero-panel .actions {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.hero-panel .actions button {
+  width: 100%;
+  min-width: 0;
+  justify-content: center;
+  overflow-wrap: anywhere;
+  text-align: center;
+  white-space: normal;
+}
+
+.panel-heading {
+  gap: 16px;
+}
+
+.panel-heading .actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.resource-double-column {
+  grid-template-columns: minmax(260px, 34%) minmax(0, 1fr) !important;
+  height: clamp(560px, calc(100vh - 330px), 680px) !important;
+  min-height: 520px !important;
+}
+
+.compact-resource-title {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.resource-detail-header {
+  align-items: flex-start;
+}
+
+.resource-detail-body > div:last-child {
+  flex-wrap: wrap;
+}
+
+.resource-detail-body > div:last-child button {
+  min-width: min(100%, 180px);
+}
+
+.wukong-profile-panel {
+  max-height: calc(100vh - 112px);
+  overflow-y: auto;
+}
+
+.wukong-stat-item {
+  display: grid !important;
+  grid-template-columns: auto minmax(24px, 1fr) auto;
+  gap: 8px;
+  width: 100%;
+}
+
+.stat-label,
+.stat-value {
+  min-width: 0;
+}
+
+.stat-divider {
+  align-self: center;
+  margin: 0 !important;
+}
+
+.stat-value {
+  max-width: 168px;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+@media (max-width: 1320px) {
+  .content-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .wukong-profile-panel {
+    position: relative;
+    top: auto;
+    max-height: none;
+  }
+
+  .content-header {
+    grid-template-columns: minmax(0, 1fr) max-content;
+    grid-template-areas:
+      "breadcrumb header-actions"
+      "tabs tabs";
+    height: auto !important;
+    min-height: 92px;
+    padding-block: 10px !important;
+  }
+
+  .content-header .breadcrumb {
+    grid-area: breadcrumb;
+  }
+
+  .content-header .tab-nav {
+    grid-area: tabs;
+    justify-self: stretch;
+  }
+
+  .content-header > div:last-child {
+    grid-area: header-actions;
+  }
+}
+
+@media (max-width: 900px) {
+  .content-header {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "breadcrumb"
+      "tabs"
+      "header-actions";
+  }
+
+  .content-header > div:last-child {
+    justify-self: stretch;
+  }
+
+  .content-header > div:last-child button {
+    flex: 1;
+  }
+
+  .tab-nav {
+    width: 100%;
+  }
+
+  .tab-btn-spirit {
+    flex: 1 1 auto;
+    margin-left: 0;
+  }
+
+  .hero-panel .actions {
+    grid-template-columns: 1fr;
+  }
+
+  .resource-double-column {
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  .resource-master-list {
+    max-height: 360px;
+  }
+}
+
+/* ==================== 🪐 CUSTOM TAB THEMES (BEYOND REALM BOUNDARY) 🪐 ==================== */
+
+/* 1. 藏经阁 (Library / Scripture Pavilion) - Sandalwood Parchment & Ink */
+.app-shell.tab-theme-library {
+  --realm-stage-mark: "藏";
+  --accent-strong: #e6b95d;
+  --accent-strong-rgb: 230 185 93;
+  --accent: #b8913b;
+  --accent-rgb: 184 145 59;
+  --gold: #f4d27a;
+  --gold-rgb: 244 210 122;
+  --line-strong: rgba(230, 185, 93, 0.45);
+  --accent-gradient: linear-gradient(135deg, #fff7e5, #e6b95d, #b8913b);
+  --realm-bg-field:
+    radial-gradient(90% 86% at 15% 15%, rgba(184, 145, 59, 0.18), transparent 58%),
+    radial-gradient(78% 74% at 85% 85%, rgba(140, 94, 25, 0.12), transparent 64%),
+    linear-gradient(135deg, #100b05 0%, #1c1308 58%, #0d0a07 100%);
+  --realm-grid:
+    linear-gradient(90deg, rgba(230, 185, 93, 0.04) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(230, 185, 93, 0.035) 1px, transparent 1px);
+  --realm-panel-bg:
+    radial-gradient(100% 80% at 12% 0%, rgba(230, 185, 93, 0.14), transparent 58%),
+    linear-gradient(135deg, rgba(184, 145, 59, 0.08), rgba(244, 210, 122, 0.03) 68%, transparent),
+    rgba(24, 17, 10, 0.85); /* Sandalwood Dark Wood */
+  --realm-sidebar-bg:
+    radial-gradient(86% 78% at 18% 0%, rgba(230, 185, 93, 0.15), transparent 58%),
+    linear-gradient(180deg, rgba(24, 17, 10, 0.96), rgba(13, 10, 7, 0.98));
+  --realm-header-bg:
+    linear-gradient(180deg, rgba(24, 17, 10, 0.92), rgba(13, 10, 7, 0.62)),
+    linear-gradient(90deg, rgba(230, 185, 93, 0.1), transparent 42%, rgba(244, 210, 122, 0.06));
+  --realm-progress: linear-gradient(90deg, #fff7e5, #e6b95d 40%, #b8913b 72%, #f4d27a);
+  --realm-particle: #f4d27a;
+  --realm-array-opacity: 0.18;
+  --realm-rim: rgba(230, 185, 93, 0.32);
+  --realm-line: rgba(230, 185, 93, 0.15);
+  --realm-side-accent: #e6b95d;
+  --realm-panel-clip: polygon(0 8px, 8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px));
+}
+
+.tab-theme-library .library-table-container {
+  background: rgba(14, 10, 6, 0.6) !important;
+  border: 1px solid rgba(230, 185, 93, 0.22) !important;
+  border-radius: 8px;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.6);
+  padding: 10px;
+}
+.tab-theme-library .library-table th {
+  border-bottom: 2px solid rgba(230, 185, 93, 0.32) !important;
+  color: #e6b95d !important;
+  background: rgba(24, 17, 10, 0.6) !important;
+  font-family: "InkBrushTitle", serif;
+  font-size: 15px;
+}
+.tab-theme-library .library-table tr {
+  border-bottom: 1px solid rgba(230, 185, 93, 0.12) !important;
+}
+.tab-theme-library .library-table tr:hover {
+  background: rgba(230, 185, 93, 0.05) !important;
+}
+.tab-theme-library .library-table td {
+  padding-block: 14px !important;
+}
+
+/* 2. 历练神阁 (Analytics / Trial Pavilion) - Starry Constellation */
+.app-shell.tab-theme-analytics {
+  --realm-stage-mark: "历";
+  --accent-strong: #9de8ff;
+  --accent-strong-rgb: 157 232 255;
+  --accent: #4fa9e6;
+  --accent-rgb: 79 169 230;
+  --gold: #a7f3ff;
+  --gold-rgb: 167 243 255;
+  --line-strong: rgba(157, 232, 255, 0.48);
+  --accent-gradient: linear-gradient(135deg, #f0faff, #9de8ff, #4fa9e6);
+  --realm-bg-field:
+    radial-gradient(86% 82% at 15% 15%, rgba(79, 169, 230, 0.2), transparent 58%),
+    radial-gradient(74% 78% at 85% 85%, rgba(157, 232, 255, 0.12), transparent 64%),
+    radial-gradient(60% 64% at 75% 20%, rgba(116, 128, 255, 0.14), transparent 68%),
+    linear-gradient(135deg, #020b13 0%, #06182c 54%, #040910 100%); /* Celestial Navy Void */
+  --realm-grid:
+    linear-gradient(60deg, rgba(157, 232, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(120deg, rgba(157, 232, 255, 0.04) 1px, transparent 1px);
+  --realm-panel-bg:
+    radial-gradient(100% 80% at 12% 0%, rgba(157, 232, 255, 0.16), transparent 58%),
+    linear-gradient(135deg, rgba(79, 169, 230, 0.1), transparent),
+    rgba(4, 18, 32, 0.85); /* Deep Astrolabe Glass */
+  --realm-sidebar-bg:
+    radial-gradient(86% 78% at 18% 0%, rgba(157, 232, 255, 0.16), transparent 58%),
+    linear-gradient(180deg, rgba(3, 16, 30, 0.96), rgba(2, 8, 16, 0.98));
+  --realm-header-bg:
+    linear-gradient(180deg, rgba(3, 16, 30, 0.92), rgba(2, 8, 16, 0.62)),
+    linear-gradient(90deg, rgba(157, 232, 255, 0.12), transparent 44%, rgba(167, 243, 255, 0.08));
+  --realm-progress: linear-gradient(90deg, #f0faff, #9de8ff 42%, #4fa9e6 74%, #a7f3ff);
+  --realm-particle: #a7f3ff;
+  --realm-array-opacity: 0.22;
+  --realm-rim: rgba(157, 232, 255, 0.3);
+  --realm-line: rgba(157, 232, 255, 0.14);
+  --realm-side-accent: #9de8ff;
+  --realm-panel-clip: polygon(0 12px, 12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px));
+}
+
+.tab-theme-analytics .radar-chart-container {
+  background: rgba(3, 13, 25, 0.68) !important;
+  border: 1px solid rgba(157, 232, 255, 0.22) !important;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+.tab-theme-analytics .analytics-card {
+  background: linear-gradient(135deg, rgba(157, 232, 255, 0.08), rgba(79, 169, 230, 0.02)) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+  border-radius: 6px;
+  border-width: 1px !important;
+}
+.tab-theme-analytics .timeline-container {
+  background: rgba(3, 13, 25, 0.58) !important;
+  border: 1px solid rgba(157, 232, 255, 0.2) !important;
+  border-radius: 8px;
+}
+
+/* 3. 元神法相 (Spirit Stats / Soul Shrine) - Mystic Void Shrine */
+.app-shell.tab-theme-spirit {
+  --realm-stage-mark: "神";
+  --accent-strong: #d7c2ff;
+  --accent-strong-rgb: 215 194 255;
+  --accent: #9b78f1;
+  --accent-rgb: 155 120 241;
+  --gold: #ffb4e2;
+  --gold-rgb: 255 180 226;
+  --line-strong: rgba(215, 194, 255, 0.52);
+  --accent-gradient: linear-gradient(135deg, #fff7ff, #d7c2ff, #9b78f1);
+  --realm-bg-field:
+    radial-gradient(86% 82% at 15% 15%, rgba(155, 120, 241, 0.22), transparent 58%),
+    radial-gradient(70% 74% at 85% 85%, rgba(255, 180, 226, 0.12), transparent 64%),
+    radial-gradient(60% 64% at 50% 50%, rgba(215, 194, 255, 0.16), transparent 70%),
+    linear-gradient(135deg, #0b0517 0%, #190938 52%, #080410 100%); /* Magical Violet Void */
+  --realm-grid:
+    radial-gradient(circle at 20% 20%, rgba(215, 194, 255, 0.08) 0 1px, transparent 2px),
+    linear-gradient(135deg, rgba(215, 194, 255, 0.04) 1px, transparent 1px);
+  --realm-panel-bg:
+    radial-gradient(90% 80% at 18% 4%, rgba(215, 194, 255, 0.2), transparent 58%),
+    radial-gradient(50% 60% at 88% 78%, rgba(255, 180, 226, 0.1), transparent 68%),
+    rgba(15, 8, 30, 0.88); /* Obsidian Void Plate */
+  --realm-sidebar-bg:
+    radial-gradient(86% 78% at 18% 0%, rgba(215, 194, 255, 0.18), transparent 58%),
+    linear-gradient(180deg, rgba(16, 7, 33, 0.96), rgba(8, 4, 16, 0.98));
+  --realm-header-bg:
+    linear-gradient(180deg, rgba(16, 7, 33, 0.92), rgba(8, 4, 16, 0.62)),
+    linear-gradient(90deg, rgba(215, 194, 255, 0.14), transparent 44%, rgba(255, 180, 226, 0.08));
+  --realm-progress: linear-gradient(90deg, #fff7ff, #d7c2ff 34%, #9b78f1 68%, #ffb4e2);
+  --realm-particle: #d7c2ff;
+  --realm-array-opacity: 0.28;
+  --realm-rim: rgba(215, 194, 255, 0.35);
+  --realm-line: rgba(215, 194, 255, 0.16);
+  --realm-side-accent: #d7c2ff;
+  --realm-panel-clip: polygon(0 16px, 16px 0, calc(100% - 16px) 0, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0 calc(100% - 16px));
+}
+
+.tab-theme-spirit .wukong-stat-group {
+  background: rgba(10, 4, 22, 0.58) !important;
+  border: 1px solid rgba(215, 194, 255, 0.2) !important;
+  border-radius: 8px;
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.7);
+}
+.tab-theme-spirit .wukong-stat-group-header {
+  color: #ffb4e2 !important;
+  text-shadow: 0 0 8px rgba(255, 180, 226, 0.5);
+}
+.tab-theme-spirit .wukong-log-scroller {
+  border-color: rgba(215, 194, 255, 0.15) !important;
+}
+
+/* ==================== 🪐 DYNAMIC TAB SVG ANIMATIONS 🪐 ==================== */
+/* 旋转由 .spiritual-array-svg 基类统一驱动（同一时刻仅渲染一个背景阵），此处仅做各页光晕色差 */
+.library-array-svg {
+  filter: drop-shadow(0 0 16px rgba(230, 185, 93, 0.36));
+}
+.analytics-array-svg {
+  filter: drop-shadow(0 0 20px rgba(157, 232, 255, 0.42));
+}
+.spirit-array-svg {
+  filter: drop-shadow(0 0 24px rgba(215, 194, 255, 0.44));
+}
+
+/* ==================== 🧧 TAB BUTTONS VISUAL DIFFERENTIATION 🧧 ==================== */
+
+.content-header .tab-nav {
+  background: rgba(0, 0, 0, 0.42) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5) !important;
+  padding: 4px !important;
+}
+
+.content-header .tab-btn {
+  position: relative !important;
+  overflow: hidden !important;
+  font-size: var(--fs-sm) !important;
+  padding: 5px 16px !important;
+  color: #a69e8d !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  transition: all 260ms cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+  display: flex !important;
+  align-items: center !important;
+  font-weight: 700 !important;
+}
+
+/* 1. 洞府修炼 (Jade / Taiji theme) */
+.content-header .tab-btn-meditation {
+  border-radius: 4px 0 0 4px !important;
+}
+.content-header .tab-btn-meditation:hover {
+  color: #8fffd4 !important;
+  background: rgba(62, 212, 159, 0.06) !important;
+  border-color: rgba(62, 212, 159, 0.16) !important;
+}
+.content-header .tab-btn-meditation.active,
+.content-header .tab-btn-meditation[aria-selected="true"] {
+  border-color: rgba(62, 212, 159, 0.38) !important;
+  background:
+    linear-gradient(180deg, rgba(62, 212, 159, 0.06), transparent),
+    rgba(6, 20, 16, 0.8) !important;
+  color: #8fffd4 !important;
+  text-shadow: 0 0 8px rgba(143, 255, 212, 0.5) !important;
+  box-shadow:
+    inset 0 0 6px rgba(143, 255, 212, 0.12),
+    0 3px 10px rgba(0, 0, 0, 0.3) !important;
+}
+.content-header .tab-btn-meditation::before {
+  content: "☯";
+  margin-right: 5px;
+  font-size: 13px;
+  opacity: 0.8;
+  display: inline-block;
+}
+
+/* 2. 藏经阁 (Ancient Parchment & Sandalwood theme) */
+.content-header .tab-btn-library {
+  border-radius: 0 !important;
+}
+.content-header .tab-btn-library:hover {
+  color: #ffe7a3 !important;
+  background: rgba(230, 185, 93, 0.06) !important;
+  border-color: rgba(230, 185, 93, 0.16) !important;
+}
+.content-header .tab-btn-library.active,
+.content-header .tab-btn-library[aria-selected="true"] {
+  border-color: rgba(230, 185, 93, 0.42) !important;
+  background:
+    linear-gradient(180deg, rgba(230, 185, 93, 0.06), transparent),
+    rgba(24, 17, 10, 0.8) !important;
+  color: #ffd36b !important;
+  text-shadow: 0 0 8px rgba(255, 211, 107, 0.5) !important;
+  box-shadow:
+    inset 0 0 6px rgba(255, 211, 107, 0.12),
+    0 3px 10px rgba(0, 0, 0, 0.3) !important;
+}
+.content-header .tab-btn-library::before {
+  content: "📖";
+  margin-right: 5px;
+  font-size: 13px;
+  opacity: 0.8;
+  display: inline-block;
+}
+
+/* 3. 历练神阁 (Celestial Astrolabe & Constellation theme) */
+.content-header .tab-btn-analytics {
+  border-radius: 0 !important;
+}
+.content-header .tab-btn-analytics:hover {
+  color: #a7f3ff !important;
+  background: rgba(79, 169, 230, 0.06) !important;
+  border-color: rgba(79, 169, 230, 0.16) !important;
+}
+.content-header .tab-btn-analytics.active,
+.content-header .tab-btn-analytics[aria-selected="true"] {
+  border-color: rgba(79, 169, 230, 0.38) !important;
+  background:
+    linear-gradient(180deg, rgba(79, 169, 230, 0.06), transparent),
+    rgba(3, 16, 30, 0.8) !important;
+  color: #9de8ff !important;
+  text-shadow: 0 0 8px rgba(157, 232, 255, 0.5) !important;
+  box-shadow:
+    inset 0 0 6px rgba(157, 232, 255, 0.12),
+    0 3px 10px rgba(0, 0, 0, 0.3) !important;
+}
+.content-header .tab-btn-analytics::before {
+  content: "🧭";
+  margin-right: 5px;
+  font-size: 13px;
+  opacity: 0.8;
+  display: inline-block;
+}
+
+/* 4. 元神法相 (Mystic Purple Halo theme) */
+.content-header .tab-btn-spirit {
+  border-radius: 0 4px 4px 0 !important;
+}
+.content-header .tab-btn-spirit:hover {
+  color: #ffb4e2 !important;
+  background: rgba(155, 120, 241, 0.06) !important;
+  border-color: rgba(155, 120, 241, 0.16) !important;
+}
+.content-header .tab-btn-spirit.active,
+.content-header .tab-btn-spirit[aria-selected="true"] {
+  border-color: rgba(155, 120, 241, 0.4) !important;
+  background:
+    linear-gradient(180deg, rgba(155, 120, 241, 0.06), transparent),
+    rgba(16, 7, 33, 0.8) !important;
+  color: #d7c2ff !important;
+  text-shadow: 0 0 8px rgba(215, 194, 255, 0.5) !important;
+  box-shadow:
+    inset 0 0 6px rgba(215, 194, 255, 0.12),
+    0 3px 10px rgba(0, 0, 0, 0.3) !important;
+}
+.content-header .tab-btn-spirit::before {
+  content: "✨";
+  margin-right: 5px;
+  font-size: 13px;
+  opacity: 0.8;
+  display: inline-block;
+}
+
+/* ==========================================================================
+   UI refinement pass: task-first layout, accessible controls, visual calm
+   ========================================================================== */
+.spiritual-array-bg {
+  opacity: 0.08 !important;
+}
+
+.spiritual-array-svg {
+  filter: drop-shadow(0 0 10px rgb(var(--accent-strong-rgb) / 0.24)) !important;
+}
+
+.spiritual-particle {
+  filter: blur(1px) drop-shadow(0 0 4px var(--accent-strong)) !important;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: 10px;
+}
+
+.content-header .tab-nav {
+  justify-content: center;
+}
+
+.content-header .tab-btn {
+  min-height: 40px !important;
+  padding: 7px 14px !important;
+  gap: 7px !important;
+  font-family: inherit !important;
+  letter-spacing: 0 !important;
+}
+
+.content-header .tab-btn svg {
+  flex: 0 0 auto;
+}
+
+.content-header .tab-btn::before {
+  content: none !important;
+  display: none !important;
+}
+
+.tab-btn-spirit,
+.content-header .tab-btn-spirit {
+  flex: 1 1 auto !important;
+  margin-left: 0 !important;
+}
+
+.refresh-btn,
+.new-project-toggle {
+  min-width: 40px !important;
+  min-height: 40px !important;
+}
+
+.logo-icon {
+  display: grid;
+  place-items: center;
+}
+
+.sidebar-new-project-panel .stack-form label,
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--muted, #a69e8d);
+  font-size: 13px;
+}
+
+.sidebar-new-project-panel .stack-form label input,
+.sidebar-new-project-panel .stack-form label textarea,
+.form-field input,
+.form-field select,
+.form-field textarea {
+  color: var(--text, #ece8dc);
+  font-size: 15px;
+}
+
+.resource-panel {
+  padding: 0 !important;
+  overflow: hidden;
+  border: none;
+}
+
+.resource-panel-header {
+  margin: 0 !important;
+  padding: 20px 20px 12px !important;
+  border-bottom: 1px solid var(--line-strong) !important;
+}
+
+.resource-panel-header h2 {
+  font-size: 20px;
+}
+
+.resource-panel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.resource-panel-actions button,
+.resource-master-list-title-row button,
+.resource-create-form button,
+.resource-detail-actions button,
+.library-table-actions button,
+.library-state-actions button,
+.breakthrough-action-group button {
+  min-height: 40px !important;
+}
+
+.resource-panel-actions .danger-button {
+  background: rgba(204, 78, 61, 0.08) !important;
+  border-color: rgba(204, 78, 61, 0.35) !important;
+  color: var(--cinnabar, #cc4e3d) !important;
+}
+
+.resource-master-list-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.resource-master-list-title {
+  color: var(--accent-strong);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.resource-search-field,
+.library-search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.resource-search-field svg,
+.library-search-field svg {
+  position: absolute;
+  left: 10px;
+  pointer-events: none;
+}
+
+.resource-search-field input,
+.library-search-field input {
+  min-height: 40px !important;
+  padding-left: 32px !important;
+  font-size: 15px !important;
+}
+
+.resource-filter-select,
+.library-filter-select {
+  min-height: 40px !important;
+  font-size: 14px !important;
+}
+
+.compact-resource-card {
+  align-items: stretch !important;
+  padding: 0 !important;
+  cursor: default !important;
+}
+
+.compact-resource-card:hover {
+  transform: none !important;
+}
+
+.compact-resource-select {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.compact-resource-select:hover,
+.compact-resource-select:focus-visible {
+  background: rgba(var(--realm-secondary-rgb, 244 210 122) / 0.06);
+}
+
+.compact-resource-select:focus-visible,
+.compact-resource-play:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgb(var(--realm-primary-rgb, 34 211 238) / 0.76), 0 0 0 2px rgb(var(--realm-primary-rgb, 34 211 238) / 0.18);
+}
+
+.compact-resource-card.active .compact-resource-select {
+  background: linear-gradient(90deg, rgba(var(--realm-primary-rgb, 34 211 238) / 0.1), transparent);
+}
+
+.compact-resource-meta .resource-badge {
+  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 14px;
+  padding: 2px 6px;
+}
+
+.compact-resource-meta span:last-child {
+  font-weight: 700;
+}
+
+.compact-resource-play {
+  align-self: stretch !important;
+  width: 44px !important;
+  height: auto !important;
+  min-height: 44px !important;
+  border-radius: 0 6px 6px 0 !important;
+  transform: none !important;
+}
+
+.compact-resource-play:hover {
+  transform: none !important;
+}
+
+.resource-detail-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+}
+
+.resource-detail-shell h3 {
+  margin: 4px 0 0;
+  color: var(--accent-strong);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.resource-detail-tools {
+  display: flex;
+  gap: 6px;
+}
+
+.resource-detail-tools .icon-button {
+  width: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+}
+
+.resource-detail-tools .danger-button {
+  background: rgba(204, 78, 61, 0.1) !important;
+  border-color: rgba(204, 78, 61, 0.4) !important;
+  color: var(--cinnabar, #cc4e3d) !important;
+}
+
+.resource-progress-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.resource-progress-line > span {
+  min-width: 42px;
+  color: var(--accent-strong);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.resource-create-form {
+  display: flex !important;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.path-input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.path-input-group input {
+  min-width: 0;
+}
+
+.path-picker-btn {
+  flex: 0 0 auto;
+}
+
+.field-label {
+  color: var(--muted, #a69e8d);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.field-hint {
+  color: var(--muted, #a69e8d);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.advanced-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px dashed rgba(var(--realm-primary-rgb, 34 211 238) / 0.2);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.advanced-field-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(96px, 0.8fr);
+  gap: 8px;
+}
+
+.resource-detail-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.resource-detail-actions button {
+  gap: 6px;
+  font-size: 15px;
+}
+
+.resource-empty-state {
+  min-height: 280px;
+  gap: 12px;
+  text-align: center;
+}
+
+.library-controls-row {
+  grid-template-columns: minmax(220px, 1.6fr) minmax(130px, 1fr) minmax(130px, 1fr) minmax(130px, 1fr) max-content !important;
+}
+
+.library-clear-filters-button,
+.library-retry-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.library-table-container--responsive {
+  overflow: auto !important;
+}
+
+.library-table--global {
+  min-width: 920px;
+}
+
+.library-table th {
+  font-family: inherit !important;
+}
+
+.library-state {
+  display: grid;
+  min-height: 260px;
+  place-items: center;
+  padding: 28px;
+  text-align: center;
+}
+
+.library-state > .empty {
+  margin: 0;
+}
+
+.library-state-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.library-state--error {
+  border: 1px solid rgba(var(--danger-rgb, 204 78 61) / 0.26);
+  background: rgba(var(--danger-rgb, 204 78 61) / 0.06);
+}
+
+.breakthrough-action-group {
+  gap: 10px;
+}
+
+.breakthrough-action-group button {
+  width: 100%;
+  justify-content: center;
+}
+
+@media (max-width: 900px) {
+  .library-controls-row {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .library-search-field {
+    grid-column: 1 / -1;
+  }
+
+  .library-clear-filters-button {
+    grid-column: 1 / -1;
+  }
+
+  .resource-detail-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .advanced-field-grid,
+  .library-controls-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .path-input-group {
+    flex-direction: column;
+  }
 }

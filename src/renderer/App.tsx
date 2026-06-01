@@ -1,5 +1,5 @@
-import { BookOpen, Play, RefreshCcw } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react';
+import { BarChart3, BookOpen, Home, Library, Play, RefreshCcw, Sparkles, type LucideIcon } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent } from 'react';
 
 import type {
   GetEnumsOutput,
@@ -23,6 +23,8 @@ import { ResourceManagementPanel } from './features/resources/ResourceManagement
 import { PendingConflictModal } from './features/studyLogs/PendingConflictModal';
 import { PendingStrip } from './features/studyLogs/PendingStrip';
 import { StudyLogModal } from './features/studyLogs/StudyLogModal';
+import { GlobalLibrary } from './features/resources/GlobalLibrary';
+import { AnalyticsDashboard } from './features/projects/AnalyticsDashboard';
 import { ToastStack } from './components/ToastStack';
 import { BreakthroughOverlay } from './components/BreakthroughOverlay';
 import { run, showError } from './lib/actionRunner';
@@ -36,6 +38,15 @@ type ParticleStyle = CSSProperties & {
   '--drift-x': string;
 };
 
+type AppTab = 'meditation' | 'library' | 'analytics' | 'spirit';
+
+const appTabs: { id: AppTab; label: string; Icon: LucideIcon }[] = [
+  { id: 'meditation', label: '当前学习', Icon: Home },
+  { id: 'library', label: '全部资料', Icon: Library },
+  { id: 'analytics', label: '学习统计', Icon: BarChart3 },
+  { id: 'spirit', label: '修行状态', Icon: Sparkles },
+];
+
 function stableUnit(index: number, salt: number): number {
   const value = Math.sin((index + 1) * (salt + 19.19)) * 10000;
   return value - Math.floor(value);
@@ -43,6 +54,7 @@ function stableUnit(index: number, salt: number): number {
 
 export function App() {
   const [overview, setOverview] = useState<GetHomeOverviewOutput | null>(null);
+  const [activeTab, setActiveTab] = useState<AppTab>('meditation');
   const [enums, setEnums] = useState<GetEnumsOutput | null>(null);
   const [projectDetail, setProjectDetail] = useState<GetProjectDetailOutput | null>(null);
   const [projectCultivation, setProjectCultivation] = useState<GetProjectCultivationOutput | null>(null);
@@ -66,6 +78,7 @@ export function App() {
   const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [busy, setBusy] = useState(false);
+  const [animPaused, setAnimPaused] = useState(false);
   const [showNewProject, setShowNewProject] = useState(false);
   const [breakthroughData, setBreakthroughData] = useState<{ resourceTitle: string; stageName: string } | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -94,14 +107,36 @@ export function App() {
   }, [projectCultivation?.realm_layer, selectedProject]);
 
   const particles = useMemo(() => {
-    const colors = [
-      'var(--accent-strong)',
-      'rgba(98, 195, 158, 0.75)',  // Emerald Green
-      'rgba(230, 185, 93, 0.75)',   // Pure Gold
-      'rgba(177, 159, 251, 0.75)',  // Astral Purple
-      'rgba(93, 164, 230, 0.75)',   // Celestial Blue
-    ];
-    return Array.from({ length: 18 }).map((_, i) => ({
+    const colorsMap: Record<AppTab, string[]> = {
+      meditation: [
+        'var(--accent-strong)',
+        'rgba(98, 195, 158, 0.75)',  // Emerald Green
+        'rgba(230, 185, 93, 0.75)',   // Pure Gold
+        'rgba(177, 159, 251, 0.75)',  // Astral Purple
+        'rgba(93, 164, 230, 0.75)',   // Celestial Blue
+      ],
+      library: [
+        'rgba(230, 185, 93, 0.8)',    // Pure Gold
+        'rgba(217, 143, 36, 0.75)',   // Amber
+        'rgba(255, 231, 163, 0.9)',   // Soft Gold
+        'rgba(166, 158, 141, 0.6)',   // Ink Sandalwood
+      ],
+      analytics: [
+        'rgba(224, 245, 255, 0.85)',  // Star White
+        'rgba(157, 232, 255, 0.75)',  // Nebula Cyan
+        'rgba(116, 128, 255, 0.7)',   // Celestial Blue
+        'rgba(215, 194, 255, 0.65)',  // Astral Violet
+      ],
+      spirit: [
+        'rgba(215, 194, 255, 0.85)',  // Astral Violet
+        'rgba(255, 180, 226, 0.8)',   // Glowing Pink
+        'rgba(255, 211, 107, 0.75)',  // Divine Gold
+        'rgba(155, 120, 241, 0.7)',   // Deep Purple
+      ]
+    };
+    const colors = colorsMap[activeTab] ?? colorsMap.meditation;
+
+    return Array.from({ length: 5 }).map((_, i) => ({
       id: i,
       left: `${stableUnit(i, 1) * 95}%`,
       delay: `${stableUnit(i, 2) * 8}s`,
@@ -110,7 +145,7 @@ export function App() {
       driftX: `${-65 + stableUnit(i, 5) * 130}px`,
       color: colors[i % colors.length]
     }));
-  }, []);
+  }, [activeTab]);
 
   const resourceTypes = enums?.resource_type ?? [];
   const openKinds = enums?.open_kind ?? [];
@@ -126,6 +161,23 @@ export function App() {
   useEffect(() => {
     busyRef.current = busy;
   }, [busy]);
+
+  // 窗口失焦或标签页不可见时暂停常驻装饰动画，桌面应用切到后台不必继续烧 GPU
+  useEffect(() => {
+    const updatePaused = () => {
+      const paused = document.visibilityState === 'hidden' || !document.hasFocus();
+      setAnimPaused(paused);
+    };
+    updatePaused();
+    window.addEventListener('focus', updatePaused);
+    window.addEventListener('blur', updatePaused);
+    document.addEventListener('visibilitychange', updatePaused);
+    return () => {
+      window.removeEventListener('focus', updatePaused);
+      window.removeEventListener('blur', updatePaused);
+      document.removeEventListener('visibilitychange', updatePaused);
+    };
+  }, []);
 
   const showToast = useCallback((toast: ToastInput) => {
     setToasts((current) => [...current, { ...toast, id: globalThis.crypto.randomUUID() }]);
@@ -188,6 +240,40 @@ export function App() {
     confirmRequest?.resolve(confirmed);
     setConfirmRequest(null);
   }
+
+  const focusTab = useCallback((tab: AppTab) => {
+    setActiveTab(tab);
+    window.requestAnimationFrame(() => {
+      document.getElementById(`app-tab-${tab}`)?.focus();
+    });
+  }, []);
+
+  const handleTabKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLButtonElement>) => {
+      const currentTab = event.currentTarget.dataset.tab as AppTab | undefined;
+      const currentIndex = appTabs.findIndex((tab) => tab.id === currentTab);
+      if (currentIndex === -1) {
+        return;
+      }
+
+      let nextIndex: number;
+      if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+        nextIndex = (currentIndex + 1) % appTabs.length;
+      } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+        nextIndex = (currentIndex - 1 + appTabs.length) % appTabs.length;
+      } else if (event.key === 'Home') {
+        nextIndex = 0;
+      } else if (event.key === 'End') {
+        nextIndex = appTabs.length - 1;
+      } else {
+        return;
+      }
+
+      event.preventDefault();
+      focusTab(appTabs[nextIndex].id);
+    },
+    [focusTab],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -633,16 +719,15 @@ export function App() {
     });
   }
 
-  if (!overview) {
-    return <main className="app-shell grid place-items-center text-slate-100">正在读取本地记录...</main>;
-  }
+  const shellThemeClass = useMemo(() => {
+    if (activeTab === 'meditation') return stageClass;
+    return `tab-theme-${activeTab}`;
+  }, [activeTab, stageClass]);
 
-  return (
-    <main className={`app-shell ${stageClass}`}>
-      {/* ==================== 🪐 聚灵阵背景与灵气粒子 🪐 ==================== */}
-      <div className="spiritual-array-bg">
-        {/* Rotating SVG array */}
-        <svg className="spiritual-array-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  const bgGraphic = useMemo(() => {
+    if (activeTab === 'meditation') {
+      return (
+        <svg className="spiritual-array-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <circle cx="100" cy="100" r="95" stroke="currentColor" strokeWidth="0.8" strokeDasharray="8 4" />
           <circle cx="100" cy="100" r="85" stroke="currentColor" strokeWidth="0.5" />
           <circle cx="100" cy="100" r="70" stroke="currentColor" strokeWidth="1.2" strokeDasharray="3 3" />
@@ -651,6 +736,71 @@ export function App() {
           <circle cx="100" cy="100" r="15" stroke="currentColor" strokeWidth="1" />
           <path d="M100 85 A7.5 7.5 0 0 0 100 100 A7.5 7.5 0 0 1 100 115 A15 15 0 0 1 100 85 Z" fill="currentColor" opacity="0.8" />
         </svg>
+      );
+    }
+    if (activeTab === 'library') {
+      return (
+        <svg className="spiritual-array-svg library-array-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <polygon points="100,5 167,33 195,100 167,167 100,195 33,167 5,100 33,33" stroke="currentColor" strokeWidth="0.8" strokeDasharray="5 3" />
+          <polygon points="100,15 157,39 181,100 157,161 100,181 43,161 19,100 43,39" stroke="currentColor" strokeWidth="0.5" />
+          <circle cx="100" cy="100" r="65" stroke="currentColor" strokeWidth="0.6" />
+          <circle cx="100" cy="100" r="45" stroke="currentColor" strokeWidth="0.6" strokeDasharray="4 2" />
+          <rect x="80" y="80" width="40" height="40" rx="3" stroke="currentColor" strokeWidth="1" opacity="0.8" />
+          <line x1="85" y1="90" x2="115" y2="90" stroke="currentColor" strokeWidth="0.8" />
+          <line x1="85" y1="100" x2="115" y2="100" stroke="currentColor" strokeWidth="0.8" />
+          <line x1="85" y1="110" x2="105" y2="110" stroke="currentColor" strokeWidth="0.8" />
+          <path d="M40 40 L60 60 M160 40 L140 60 M40 160 L60 140 M160 160 L140 140" stroke="currentColor" strokeWidth="0.5" opacity="0.6" />
+        </svg>
+      );
+    }
+    if (activeTab === 'analytics') {
+      return (
+        <svg className="spiritual-array-svg analytics-array-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="100" cy="100" r="95" stroke="currentColor" strokeWidth="0.5" opacity="0.6" />
+          <circle cx="100" cy="100" r="75" stroke="currentColor" strokeWidth="0.8" strokeDasharray="10 5" />
+          <circle cx="100" cy="100" r="50" stroke="currentColor" strokeWidth="0.4" />
+          <circle cx="100" cy="100" r="25" stroke="currentColor" strokeWidth="0.6" strokeDasharray="2 2" />
+          <path d="M100 5 L159 181 L5 73 L195 73 L41 181 Z" stroke="currentColor" strokeWidth="0.6" opacity="0.5" />
+          <circle cx="100" cy="5" r="2.5" fill="currentColor" />
+          <circle cx="159" cy="181" r="2.5" fill="currentColor" />
+          <circle cx="5" cy="73" r="2.5" fill="currentColor" />
+          <circle cx="195" cy="73" r="2.5" fill="currentColor" />
+          <circle cx="41" cy="181" r="2.5" fill="currentColor" />
+          <circle cx="100" cy="100" r="88" stroke="currentColor" strokeWidth="0.8" strokeDasharray="1 3" />
+        </svg>
+      );
+    }
+    if (activeTab === 'spirit') {
+      return (
+        <svg className="spiritual-array-svg spirit-array-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="100" cy="100" r="95" stroke="currentColor" strokeWidth="0.4" opacity="0.5" />
+          <circle cx="100" cy="100" r="85" stroke="currentColor" strokeWidth="0.8" strokeDasharray="6 3" />
+          <path d="M100 20 C120 50, 120 70, 100 100 C80 70, 80 50, 100 20 Z" stroke="currentColor" strokeWidth="0.8" />
+          <path d="M100 180 C120 150, 120 130, 100 100 C80 130, 80 150, 100 180 Z" stroke="currentColor" strokeWidth="0.8" />
+          <path d="M20 100 C50 120, 70 120, 100 100 C70 80, 50 80, 20 100 Z" stroke="currentColor" strokeWidth="0.8" />
+          <path d="M180 100 C150 120, 130 120, 100 100 C130 80, 150 80, 180 100 Z" stroke="currentColor" strokeWidth="0.8" />
+          <path d="M43 43 C70 60, 80 70, 100 100 C80 80, 70 60, 43 43 Z" stroke="currentColor" strokeWidth="0.6" opacity="0.7" />
+          <path d="M157 157 C130 140, 120 130, 100 100 C120 120, 130 140, 157 157 Z" stroke="currentColor" strokeWidth="0.6" opacity="0.7" />
+          <path d="M43 157 C70 140, 80 130, 100 100 C80 120, 70 140, 43 157 Z" stroke="currentColor" strokeWidth="0.6" opacity="0.7" />
+          <path d="M157 43 C130 60, 120 70, 100 100 C120 80, 130 60, 157 43 Z" stroke="currentColor" strokeWidth="0.6" opacity="0.7" />
+          <circle cx="100" cy="100" r="30" stroke="currentColor" strokeWidth="1" />
+          <path d="M100 85 C108 93, 108 100, 100 115 C92 100, 92 93, 100 85 Z" fill="currentColor" opacity="0.9" />
+        </svg>
+      );
+    }
+    return null;
+  }, [activeTab]);
+
+  if (!overview) {
+    return <main className="app-shell grid place-items-center text-slate-100">正在读取本地记录...</main>;
+  }
+
+  return (
+    <main className={`app-shell ${shellThemeClass}`} data-anim-paused={animPaused}>
+      {/* ==================== 🪐 聚灵阵背景与灵气粒子 🪐 ==================== */}
+      <div className="spiritual-array-bg" aria-hidden="true">
+        {/* Rotating SVG array */}
+        {bgGraphic}
 
         {/* Floating particles */}
         {particles.map((p) => {
@@ -695,25 +845,30 @@ export function App() {
               {selectedProject?.name ?? '未选择法门'} {selectedProject ? `(${stageName})` : ''}
             </strong>
           </div>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            {selectedProject && projectCultivation ? (
+
+          {/* 🪐 Center Tab Navigation Bar 🪐 */}
+          <div className="tab-nav" role="tablist" aria-label="主内容视图">
+            {appTabs.map((tab) => (
               <button
-                className="secondary-button"
+                aria-controls={`app-panel-${tab.id}`}
+                aria-selected={activeTab === tab.id}
+                className={`tab-btn tab-btn-${tab.id} ${activeTab === tab.id ? 'active' : ''}`}
+                data-tab={tab.id}
+                id={`app-tab-${tab.id}`}
+                key={tab.id}
+                role="tab"
+                tabIndex={activeTab === tab.id ? 0 : -1}
                 type="button"
-                style={{
-                  minHeight: '30px',
-                  fontSize: '14px',
-                  padding: '4px 10px',
-                  borderColor: 'var(--accent)',
-                  background: 'rgba(184, 141, 62, 0.05)',
-                  cursor: 'pointer'
-                }}
-                onClick={attemptBreakthrough}
-                title={projectCultivation.can_breakthrough ? '尝试突破境界' : projectCultivation.bottlenecks[0] ?? '暂不可突破'}
+                onClick={() => setActiveTab(tab.id)}
+                onKeyDown={handleTabKeyDown}
               >
-                {projectCultivation.can_breakthrough ? '尝试突破' : '道基未稳'}
+                <tab.Icon aria-hidden="true" size={15} />
+                {tab.label}
               </button>
-            ) : null}
+            ))}
+          </div>
+
+          <div className="header-actions">
             <button className="icon-button refresh-btn" type="button" onClick={refresh} disabled={busy} title="刷新" aria-label="刷新">
               <RefreshCcw size={16} />
             </button>
@@ -726,74 +881,99 @@ export function App() {
             <PendingStrip pending={overview.pending} busy={busy} onOpenLog={openPendingLog} onAbandon={abandonPending} />
           ) : null}
 
-          {/* Core Grid: Main Column (details, resources) + Right Profile (wukong style) */}
-          <div className="content-grid">
-            {/* Main Column */}
-            <div className="main-column">
-              {/* Recommended study card at the very top of main column */}
-              <section className="hero-panel">
-                <p className="eyebrow">继续闭关</p>
-                {overview.recommended ? (
-                  <>
-                    <h2>{overview.recommended.title}</h2>
-                    <p className="muted">{overview.recommended_project_name}</p>
-                    <ProgressBar value={overview.recommended.progress_percent} />
-                    <p className="next-action">{overview.recommended.next_action || '还没有设置下次闭关目标。'}</p>
-                    <div className="actions">
-                      <button className="primary-button" type="button" onClick={() => continueResource(overview.recommended!)} disabled={busy}>
-                        <Play size={16} />
-                        继续闭关：打开资料继续学习
-                      </button>
-                      <button className="ghost-button" type="button" onClick={() => openLog(overview.recommended!, 'manual')} disabled={busy}>
-                        <BookOpen size={16} />
-                        出关记录：保存本次学习进度
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <p className="empty">暂无可推荐资料，建议在下方挑选或加入新的参悟秘卷。</p>
-                )}
-              </section>
+          {/* Tab Conditional Rendering */}
+          {activeTab === 'meditation' ? (
+            /* Core Grid: Main Column (details, resources) */
+            <div id="app-panel-meditation" className="content-grid meditation-grid" role="tabpanel" aria-labelledby="app-tab-meditation">
+              {/* Main Column */}
+              <div className="main-column">
+                {/* Recommended study card at the very top of main column */}
+                <section className="hero-panel">
+                  <p className="eyebrow">继续闭关</p>
+                  {overview.recommended ? (
+                    <>
+                      <h2>{overview.recommended.title}</h2>
+                      <p className="muted">{overview.recommended_project_name}</p>
+                      <ProgressBar value={overview.recommended.progress_percent} />
+                      <p className="next-action">{overview.recommended.next_action || '还没有设置下次闭关目标。'}</p>
+                      <div className="actions">
+                        <button className="primary-button" type="button" onClick={() => continueResource(overview.recommended!)} disabled={busy}>
+                          <Play size={16} />
+                          继续学习
+                        </button>
+                        <button className="ghost-button" type="button" onClick={() => openLog(overview.recommended!, 'manual')} disabled={busy}>
+                          <BookOpen size={16} />
+                          记录进度
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="empty">暂无可推荐资料，建议在下方挑选或加入新的参悟秘卷。</p>
+                  )}
+                </section>
 
-              <ResourceManagementPanel
-                selectedProject={selectedProject}
-                projectDetail={projectDetail}
-                resourceTitle={resourceTitle}
-                resourceType={resourceType}
-                cultivationRole={cultivationRole}
-                masteryGroup={masteryGroup}
-                masteryWeight={masteryWeight}
-                openKind={openKind}
-                pathOrUrl={pathOrUrl}
-                initialProgress={initialProgress}
-                initialNextAction={initialNextAction}
-                resourceTypes={resourceTypes}
-                cultivationRoles={cultivationRoles}
-                openKinds={openKinds}
-                busy={busy}
-                onResourceTitleChange={setResourceTitle}
-                onResourceTypeChange={setResourceType}
-                onCultivationRoleChange={setCultivationRole}
-                onMasteryGroupChange={setMasteryGroup}
-                onMasteryWeightChange={setMasteryWeight}
-                onOpenKindChange={setOpenKind}
-                onPathOrUrlChange={setPathOrUrl}
-                onInitialProgressChange={setInitialProgress}
-                onInitialNextActionChange={setInitialNextAction}
-                onSubmitResource={submitResource}
-                onPickPath={(kind) => pickPath(kind, false)}
-                onEditProject={(project) => setProjectEdit({ id: project.id, name: project.name })}
-                onDeleteProject={deleteProject}
+                <ResourceManagementPanel
+                  selectedProject={selectedProject}
+                  projectDetail={projectDetail}
+                  resourceTitle={resourceTitle}
+                  resourceType={resourceType}
+                  cultivationRole={cultivationRole}
+                  masteryGroup={masteryGroup}
+                  masteryWeight={masteryWeight}
+                  openKind={openKind}
+                  pathOrUrl={pathOrUrl}
+                  initialProgress={initialProgress}
+                  initialNextAction={initialNextAction}
+                  resourceTypes={resourceTypes}
+                  cultivationRoles={cultivationRoles}
+                  openKinds={openKinds}
+                  busy={busy}
+                  onResourceTitleChange={setResourceTitle}
+                  onResourceTypeChange={setResourceType}
+                  onCultivationRoleChange={setCultivationRole}
+                  onMasteryGroupChange={setMasteryGroup}
+                  onMasteryWeightChange={setMasteryWeight}
+                  onOpenKindChange={setOpenKind}
+                  onPathOrUrlChange={setPathOrUrl}
+                  onInitialProgressChange={setInitialProgress}
+                  onInitialNextActionChange={setInitialNextAction}
+                  onSubmitResource={submitResource}
+                  onPickPath={(kind) => pickPath(kind, false)}
+                  onEditProject={(project) => setProjectEdit({ id: project.id, name: project.name })}
+                  onDeleteProject={deleteProject}
+                  onContinueResource={continueResource}
+                  onOpenLog={openLog}
+                  onShowResourceDetail={showResourceDetail}
+                  onStartEditResource={startEditResource}
+                  onDeleteResource={deleteResource}
+                />
+              </div>
+
+            </div>
+          ) : activeTab === 'library' ? (
+            <div id="app-panel-library" className="tab-panel" role="tabpanel" aria-labelledby="app-tab-library">
+              <GlobalLibrary
+                overview={overview}
                 onContinueResource={continueResource}
                 onOpenLog={openLog}
-                onShowResourceDetail={showResourceDetail}
-                onStartEditResource={startEditResource}
-                onDeleteResource={deleteResource}
+                busy={busy}
               />
             </div>
-
-            <ProjectStatsPanel overview={overview} selectedProject={selectedProject} cultivation={projectCultivation} />
-          </div>
+          ) : activeTab === 'analytics' ? (
+            <div id="app-panel-analytics" className="tab-panel" role="tabpanel" aria-labelledby="app-tab-analytics">
+              <AnalyticsDashboard overview={overview} />
+            </div>
+          ) : (
+            <div id="app-panel-spirit" className="tab-panel spirit-panel" role="tabpanel" aria-labelledby="app-tab-spirit">
+              <ProjectStatsPanel
+                overview={overview}
+                selectedProject={selectedProject}
+                cultivation={projectCultivation}
+                busy={busy}
+                onAttemptBreakthrough={attemptBreakthrough}
+              />
+            </div>
+          )}
         </div>
       </div>
 

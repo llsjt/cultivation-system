@@ -34,7 +34,7 @@ if (!gotLock) {
 
   app.whenReady().then(bootstrap).catch((error: unknown) => {
     logger.error({ err: error }, 'bootstrap failed');
-    createDiagnosticWindow();
+    createDiagnosticWindow(error);
   });
 }
 
@@ -291,7 +291,7 @@ function blockRendererNetworkRequests(): void {
   });
 }
 
-function createDiagnosticWindow(): void {
+function createDiagnosticWindow(error: unknown): void {
   nativeTheme.themeSource = 'dark';
 
   const window = new BrowserWindow({
@@ -305,13 +305,46 @@ function createDiagnosticWindow(): void {
     },
   });
 
+  const message = error instanceof Error ? error.message : String(error);
+  const diagnostic = getStartupDiagnostic(message);
   const html = encodeURIComponent(`
-    <main style="font-family: system-ui; padding: 32px; line-height: 1.6">
-      <h1>数据升级未完成</h1>
-      <p>应用已停止启动以保护本地学习记录。请检查应用数据目录中的数据库与 backups 目录，或从最近备份恢复。</p>
+    <main style="font-family: system-ui; padding: 32px; line-height: 1.6; color: #e8f6ef">
+      <h1>${diagnostic.title}</h1>
+      <p>${diagnostic.body}</p>
+      <p style="color: #9fb8ae; font-size: 13px">技术信息：${escapeHtml(message.slice(0, 420))}</p>
     </main>
   `);
   void window.loadURL(`data:text/html;charset=utf-8,${html}`);
+}
+
+function getStartupDiagnostic(message: string): { title: string; body: string } {
+  if (message.includes('NODE_MODULE_VERSION') || message.includes('ERR_DLOPEN_FAILED')) {
+    return {
+      title: '本地模块需要重建',
+      body: '应用数据没有损坏。当前 better-sqlite3 是给 Node 测试环境编译的，而桌面应用需要 Electron 版本。请重新通过桌面快捷方式启动，启动脚本会自动重建后再打开应用。',
+    };
+  }
+
+  if (message.includes('MIGRATION_FAILED')) {
+    return {
+      title: '数据升级未完成',
+      body: '应用已停止启动以保护本地学习记录。请检查应用数据目录中的数据库与 backups 目录，或从最近备份恢复。',
+    };
+  }
+
+  return {
+    title: '应用启动未完成',
+    body: '应用启动时遇到问题，已停止继续加载以保护本地学习记录。请查看启动日志中的技术信息。',
+  };
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 app.on('window-all-closed', () => {

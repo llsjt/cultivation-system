@@ -1,4 +1,4 @@
-import { FolderPlus } from 'lucide-react';
+import { Compass, FolderPlus } from 'lucide-react';
 import type { FormEvent } from 'react';
 
 import type { GetHomeOverviewOutput } from '../../../shared/dto';
@@ -55,7 +55,9 @@ export function ProjectSidebar({
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="logo-wrap">
-          <span className="logo-icon">☯</span>
+          <span className="logo-icon" aria-hidden="true">
+            <Compass size={24} />
+          </span>
           <div>
             <p className="eyebrow">修真道统</p>
             <h1>修仙参悟系统</h1>
@@ -87,8 +89,14 @@ export function ProjectSidebar({
                 onCloseNewProject();
               }}
             >
-              <input value={projectName} onChange={(event) => onProjectNameChange(event.target.value)} placeholder="方向名称" required maxLength={120} />
-              <textarea value={projectDescription} onChange={(event) => onProjectDescriptionChange(event.target.value)} placeholder="描述..." maxLength={1000} />
+              <label>
+                方向名称
+                <input value={projectName} onChange={(event) => onProjectNameChange(event.target.value)} placeholder="方向名称" required maxLength={120} />
+              </label>
+              <label>
+                方向描述
+                <textarea value={projectDescription} onChange={(event) => onProjectDescriptionChange(event.target.value)} placeholder="描述..." maxLength={1000} />
+              </label>
               <div className="form-actions">
                 <button className="secondary-button" type="submit" disabled={busy}>
                   保存方向
@@ -124,7 +132,7 @@ export function ProjectSidebar({
               gap: '6px',
               alignItems: 'center',
               minHeight: '36px',
-              fontSize: '14px',
+              fontSize: '15px',
               borderColor: 'var(--accent)',
               background: 'rgba(34, 211, 238, 0.05)',
               width: '100%'
@@ -132,7 +140,7 @@ export function ProjectSidebar({
             type="button"
             onClick={onToggleNewProject}
           >
-            <FolderPlus size={14} />
+            <FolderPlus size={16} />
             开启新法门
           </button>
         </div>

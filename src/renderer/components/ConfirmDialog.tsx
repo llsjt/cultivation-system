@@ -25,10 +25,10 @@ export function ConfirmDialog({ request, onSettle }: ConfirmDialogProps) {
           {request.message}
         </p>
         <div className="actions">
-          <button className={request.danger ? 'danger-button' : 'primary-button'} type="button" onClick={() => onSettle(true)} autoFocus>
+          <button className={request.danger ? 'danger-button' : 'primary-button'} type="button" onClick={() => onSettle(true)} autoFocus={!request.danger}>
             {request.confirmLabel}
           </button>
-          <button className="ghost-button" type="button" onClick={() => onSettle(false)}>
+          <button className="ghost-button" type="button" onClick={() => onSettle(false)} autoFocus={request.danger === true}>
             {request.cancelLabel ?? '取消'}
           </button>
         </div>
