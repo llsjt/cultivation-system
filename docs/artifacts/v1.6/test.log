@@ -1,0 +1,12 @@
+﻿Command: rtk corepack pnpm run test
+Date: 2026-06-06 18:17 Asia/Shanghai
+Result: PASS
+
+Output summary:
+- rebuild:node completed for better-sqlite3.
+- Vitest: 14 test files passed.
+- Vitest: 70 tests passed.
+
+Warnings observed:
+- better-sqlite3 rebuild emitted Node deprecation warning DEP0176 from fs.R_OK.
+- test process emitted Node deprecation warning DEP0169 from url.parse().

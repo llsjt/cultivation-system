@@ -1,4 +1,4 @@
-import { BookOpen, Award, Compass, Layers } from 'lucide-react';
+import { Award, BookOpen, Clock3, Compass, Layers, ListChecks } from 'lucide-react';
 import { useMemo } from 'react';
 
 import type { GetHomeOverviewOutput } from '../../../shared/dto';
@@ -6,6 +6,24 @@ import type { GetHomeOverviewOutput } from '../../../shared/dto';
 type AnalyticsDashboardProps = {
   overview: GetHomeOverviewOutput;
 };
+
+const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
+
+function toTimestamp(value: string | null | undefined): number | null {
+  if (!value) {
+    return null;
+  }
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function getLatestTimestamp(values: (string | null | undefined)[]): number {
+  const timestamps = values.flatMap((value) => {
+    const timestamp = toTimestamp(value);
+    return timestamp === null ? [] : [timestamp];
+  });
+  return timestamps.length > 0 ? Math.max(...timestamps) : 0;
+}
 
 function formatStudiedAt(dateStr: string): string {
   try {
@@ -29,6 +47,45 @@ export function AnalyticsDashboard({ overview }: AnalyticsDashboardProps) {
     ? Math.round(overview.projects.reduce((sum, project) => sum + project.progress_percent, 0) / overview.projects.length)
     : 0;
   const totalRecentLogs = overview.recent_logs.length;
+  const referenceTimestamp = useMemo(
+    () =>
+      getLatestTimestamp([
+        overview.last_saved_at,
+        ...overview.recent_logs.map((log) => log.studied_at),
+        ...overview.projects.map((project) => project.last_studied_at ?? project.updated_at),
+      ]),
+    [overview.last_saved_at, overview.projects, overview.recent_logs],
+  );
+  const recent14Logs = useMemo(() => {
+    return overview.recent_logs.filter((log) => {
+      const studiedAt = Date.parse(log.studied_at);
+      return Number.isFinite(studiedAt) && referenceTimestamp - studiedAt <= FOURTEEN_DAYS_MS;
+    });
+  }, [overview.recent_logs, referenceTimestamp]);
+  const effectiveMinutes14d = recent14Logs.reduce((sum, log) => sum + (log.duration_minutes ?? 0), 0);
+  const projectProgressBands = useMemo(() => {
+    const bands = { early: 0, active: 0, mature: 0, completed: 0 };
+    for (const project of overview.projects) {
+      if (project.progress_percent >= 100) {
+        bands.completed += 1;
+      } else if (project.progress_percent >= 70) {
+        bands.mature += 1;
+      } else if (project.progress_percent >= 30) {
+        bands.active += 1;
+      } else {
+        bands.early += 1;
+      }
+    }
+    return bands;
+  }, [overview.projects]);
+  const stalledProjects = useMemo(() => {
+    return overview.projects
+      .filter((project) => {
+        const lastStudiedAt = toTimestamp(project.last_studied_at);
+        return lastStudiedAt === null || referenceTimestamp - lastStudiedAt > FOURTEEN_DAYS_MS;
+      })
+      .slice(0, 3);
+  }, [overview.projects, referenceTimestamp]);
 
   // Calculate Five Elements dynamically based on project titles and progress
   const fiveElements = useMemo(() => {
@@ -139,15 +196,52 @@ export function AnalyticsDashboard({ overview }: AnalyticsDashboardProps) {
         </div>
       </div>
 
+      <div className="analytics-review-grid">
+        <section className="analytics-review-card">
+          <div className="analytics-review-card-header">
+            <Clock3 size={16} aria-hidden="true" />
+            <span>近 14 天有效学习</span>
+          </div>
+          <strong>{effectiveMinutes14d} 分钟</strong>
+          <p>{recent14Logs.length} 条出关记录提供了本期复盘依据。</p>
+        </section>
+        <section className="analytics-review-card">
+          <div className="analytics-review-card-header">
+            <BookOpen size={16} aria-hidden="true" />
+            <span>最近出关</span>
+          </div>
+          <strong>{overview.recent_logs[0]?.resource_title_snapshot ?? '暂无记录'}</strong>
+          <p>{overview.recent_logs[0] ? formatStudiedAt(overview.recent_logs[0].studied_at) : '完成一次记录后这里会显示最近学习现场。'}</p>
+        </section>
+        <section className="analytics-review-card">
+          <div className="analytics-review-card-header">
+            <ListChecks size={16} aria-hidden="true" />
+            <span>项目进度分布</span>
+          </div>
+          <strong>
+            {projectProgressBands.early}/{projectProgressBands.active}/{projectProgressBands.mature}/{projectProgressBands.completed}
+          </strong>
+          <p>依次为起步、推进、成熟、完成，用于判断回访优先级。</p>
+        </section>
+        <section className="analytics-review-card">
+          <div className="analytics-review-card-header">
+            <Compass size={16} aria-hidden="true" />
+            <span>近期需回访</span>
+          </div>
+          <strong>{stalledProjects[0]?.name ?? '暂无停滞方向'}</strong>
+          <p>{stalledProjects.length > 0 ? stalledProjects.map((project) => project.name).join('、') : '近 14 天内方向都有学习痕迹。'}</p>
+        </section>
+      </div>
+
       {/* Grid Layout: Radar vs Timeline */}
       <div className="analytics-grid">
         {/* Left Column: Radar Chart */}
         <div className="radar-chart-container">
           <h3 style={{ fontFamily: '"InkBrushTitle", serif', color: 'var(--accent-strong)', fontSize: '16px', margin: 0 }}>
-            ☯ 元神五行根骨
+            五行根骨辅助反馈
           </h3>
           <p className="text-xs muted" style={{ margin: '0 0 10px 0', textAlign: 'center' }}>
-            根据参悟秘籍的项目类别与深度自动推衍元神根骨
+            根据项目名称和进度生成的趣味分布，不作为核心推荐依据。
           </p>
 
           <svg
@@ -273,7 +367,7 @@ export function AnalyticsDashboard({ overview }: AnalyticsDashboardProps) {
 
         {/* Right Column: Timelines */}
         <div className="timeline-container">
-          <h3>📜 修仙全量历练印记</h3>
+          <h3>最近出关复盘</h3>
           <div className="analytics-timeline-scroller">
             {overview.recent_logs.map((log) => (
               <div className="analytics-timeline-item" key={log.id}>

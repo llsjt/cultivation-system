@@ -5,6 +5,7 @@ import type { GetEnumsOutput, GetHomeOverviewOutput, GetProjectDetailOutput, Res
 import type { CultivationRole, OpenKind, ResourceType } from '../../../shared/enums';
 import { ProgressBar } from '../../components/ProgressBar';
 import type { LogDraft } from '../../types';
+import { getResourceRoleDisplay, getResourceStatusLabel, getResourceTypeLabel, getResourceWeightDisplay } from './resourceDisplay';
 
 type ProjectSummary = GetHomeOverviewOutput['projects'][number];
 
@@ -241,7 +242,9 @@ export function ResourceManagementPanel({
           </div>
 
           <div className="resource-master-list-scroller" aria-label="当前方向资料列表">
-            {filteredResources.map((resource) => (
+            {filteredResources.map((resource) => {
+                const roleDisplay = getResourceRoleDisplay(resource.cultivation_role);
+                return (
               <div
                 className={`compact-resource-card ${effectiveSelectedResourceId === resource.id ? 'active' : ''}`}
                 key={resource.id}
@@ -256,8 +259,9 @@ export function ResourceManagementPanel({
                     <span className="compact-resource-title">{resource.title}</span>
                     <div className="compact-resource-meta">
                       <span className={`resource-badge ${resource.type}`}>
-                        {resourceTypes.find((type) => type.value === resource.type)?.label ?? resource.type}
+                        {getResourceTypeLabel(resource.type)}
                       </span>
+                      <span className={`resource-role-chip ${roleDisplay.tone}`} title={roleDisplay.description}>{roleDisplay.label}</span>
                       <span>{resource.progress_percent}%</span>
                     </div>
                   </div>
@@ -276,7 +280,8 @@ export function ResourceManagementPanel({
                   <Play size={14} fill="currentColor" />
                 </button>
               </div>
-            ))}
+                );
+              })}
             {filteredResources.length === 0 && (
               <p className="empty text-xs py-8 text-center" style={{ fontSize: '14px' }}>
                 暂无匹配秘卷
@@ -375,7 +380,7 @@ export function ResourceManagementPanel({
                       <input id="resource-mastery-weight-input" value={masteryWeight} onChange={(event) => onMasteryWeightChange(event.target.value)} type="number" min={1} max={5} aria-describedby="resource-mastery-weight-hint" />
                     </label>
                   </div>
-                  <small id="resource-mastery-weight-hint" className="field-hint">权重 1-5，用于计算掌握度。</small>
+                  <small id="resource-mastery-weight-hint" className="field-hint">方向代表性 1-5，用于表达这份资料对当前方向境界反馈的影响程度。</small>
                 </div>
                 <button className="secondary-button" type="submit" disabled={busy}>
                   <FilePlus2 size={14} />
@@ -387,10 +392,18 @@ export function ResourceManagementPanel({
             /* Render Selected Book Details & Local Logs Timeline */
             activeResource ? (
               <div className="resource-detail-shell">
+                {(() => {
+                  const roleDisplay = getResourceRoleDisplay(activeResource.cultivation_role);
+                  const weightDisplay = getResourceWeightDisplay(activeResource.mastery_weight);
+                  return (
+                    <>
                 <div className="resource-detail-header">
                   <div className="resource-detail-header-left">
                     <span className={`resource-badge ${activeResource.type}`}>
-                      {resourceTypes.find((type) => type.value === activeResource.type)?.label ?? activeResource.type}
+                      {getResourceTypeLabel(activeResource.type)}
+                    </span>
+                    <span className={`resource-role-chip ${roleDisplay.tone}`} title={roleDisplay.description}>
+                      {roleDisplay.label}
                     </span>
                     <h2>{activeResource.title}</h2>
                   </div>
@@ -454,6 +467,18 @@ export function ResourceManagementPanel({
                       <span>最近修炼：</span>
                       <strong>{activeResource.last_studied_at ? new Date(activeResource.last_studied_at).toLocaleDateString() : '尚未开坛'}</strong>
                     </div>
+                    <div className="resource-detail-meta-item" title={roleDisplay.description}>
+                      <span>修炼定位：</span>
+                      <strong>{roleDisplay.label}</strong>
+                    </div>
+                    <div className="resource-detail-meta-item" title={weightDisplay.description}>
+                      <span>方向代表性：</span>
+                      <strong>{weightDisplay.valueLabel}</strong>
+                    </div>
+                    <div className="resource-detail-meta-item">
+                      <span>当前状态：</span>
+                      <strong>{getResourceStatusLabel(activeResource.status)}</strong>
+                    </div>
                   </div>
 
                   {/* Local Study Logs Timeline */}
@@ -486,16 +511,19 @@ export function ResourceManagementPanel({
 
                   {/* Primary Actions for selected book */}
                   <div className="resource-detail-actions">
-                    <button className="primary-button" type="button" onClick={() => void onContinueResource(activeResource)} disabled={busy}>
+                    <button className="primary-button" type="button" onClick={() => void onContinueResource(activeResource)} disabled={busy} aria-label={`继续学习 ${activeResource.title}`}>
                       <Play size={16} fill="currentColor" />
                       继续学习
                     </button>
-                    <button className="ghost-button" type="button" onClick={() => onOpenLog(activeResource, 'manual')} disabled={busy}>
+                    <button className="ghost-button" type="button" onClick={() => onOpenLog(activeResource, 'manual')} disabled={busy} aria-label={`记录进度 ${activeResource.title}`}>
                       <BookOpen size={16} />
                       记录进度
                     </button>
                   </div>
                 </div>
+                    </>
+                  );
+                })()}
               </div>
             ) : (
               <div className="resource-detail-empty resource-empty-state">

@@ -74,10 +74,19 @@ export function StudyLogModal({ draft, resourceStatuses, evidenceTypes, busy, on
           <textarea value={draft.next_action} onChange={(event) => onChange({ ...draft, next_action: event.target.value })} maxLength={500} />
         </label>
         <label>
-          闭关时长（分钟）
-          <input value={draft.duration_minutes} onChange={(event) => onChange({ ...draft, duration_minutes: event.target.value })} type="number" min={0} max={1440} />
+          有效学习时长（分钟）
+          <input
+            value={draft.duration_minutes}
+            onChange={(event) => onChange({ ...draft, duration_minutes: event.target.value })}
+            type="number"
+            min={0}
+            max={1440}
+            aria-describedby="study-duration-hint"
+          />
         </label>
-        {draft.duration_hint ? <p className="field-hint">{draft.duration_hint}</p> : null}
+        <p id="study-duration-hint" className="field-hint">
+          {draft.duration_hint ?? '可留空；留空时仍能保存，但突破诊断会提示缺少有效学习时长。'}
+        </p>
         <div className="actions">
           <button className="primary-button" type="submit" disabled={busy}>
             <Save size={16} />

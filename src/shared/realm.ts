@@ -1,6 +1,17 @@
 import type { CultivationRole, ResourceStatus, ResourceType, StudyEvidenceType } from './enums';
 
 export const realmNames = ['炼气', '筑基', '金丹', '元婴', '化神'] as const;
+export const BREAKTHROUGH_TARGETS = {
+  core_mastery: 80,
+  core_resource_count: 1,
+  dao_foundation_score: 80,
+  fresh_log_count: 1,
+  recent_log_count: 1,
+  trial_mastery: 70,
+  trial_resource_count: 1,
+} as const;
+export const EFFECTIVE_STUDY_MINUTES_14D_TARGET = 120;
+export const EFFECTIVE_STUDY_MINUTES_PER_LOG_CAP = 180;
 
 export type RealmRank = 0 | 1 | 2 | 3 | 4;
 
@@ -16,7 +27,10 @@ export type CultivationResourceSnapshot = {
 
 export type CultivationLogSnapshot = {
   studied_at: string;
+  duration_minutes: number | null;
   content: string | null;
+  progress_before_percent: number;
+  progress_after_percent: number;
   evidence_type: StudyEvidenceType | null;
 };
 
@@ -39,6 +53,13 @@ export type ProjectCultivationState = {
   core_resource_count: number;
   trial_resource_count: number;
   recent_log_count: number;
+  effective_study_minutes_14d: number;
+  effective_study_minutes_target: number;
+  effective_study_minutes_remaining: number;
+  effective_study_days_14d: number;
+  missing_duration_log_count: number;
+  capped_duration_log_count: number;
+  diagnostic_warnings: string[];
   bottlenecks: string[];
 };
 
@@ -67,7 +88,7 @@ export function evaluateProjectCultivation(input: {
   const now = input.now ?? new Date();
   const realmRank = clampRealmRank(input.realm_rank);
   const coreResources = input.resources.filter((resource) => resource.cultivation_role === 'core');
-  const trialResources = input.resources.filter((resource) => resource.cultivation_role === 'trial' || resource.type === 'exercise');
+  const trialResources = input.resources.filter((resource) => resource.cultivation_role === 'trial' || (resource.cultivation_role !== 'reference' && resource.type === 'exercise'));
   const metrics: CultivationMetrics = {
     core_mastery: weightedMastery(coreResources),
     trial_mastery: weightedMastery(trialResources),
@@ -78,6 +99,7 @@ export function evaluateProjectCultivation(input: {
     metrics.core_mastery * 0.4 + metrics.trial_mastery * 0.35 + metrics.reflection_score * 0.15 + metrics.stability_score * 0.1,
   );
   const recentLogCount = countRecentLogs(input.logs, now, 14);
+  const effectiveStudy = calculateEffectiveStudy(input.logs, now);
   const freshLogCount = countFreshLogs(input.logs, input.last_breakthrough_at);
   const bottlenecks = getBreakthroughBottlenecks({
     realmRank,
@@ -101,6 +123,13 @@ export function evaluateProjectCultivation(input: {
     core_resource_count: coreResources.length,
     trial_resource_count: trialResources.length,
     recent_log_count: recentLogCount,
+    effective_study_minutes_14d: effectiveStudy.minutes,
+    effective_study_minutes_target: EFFECTIVE_STUDY_MINUTES_14D_TARGET,
+    effective_study_minutes_remaining: Math.max(0, EFFECTIVE_STUDY_MINUTES_14D_TARGET - effectiveStudy.minutes),
+    effective_study_days_14d: effectiveStudy.days,
+    missing_duration_log_count: effectiveStudy.missingDurationCount,
+    capped_duration_log_count: effectiveStudy.cappedDurationCount,
+    diagnostic_warnings: buildDiagnosticWarnings(effectiveStudy),
     bottlenecks,
   };
 }
@@ -202,6 +231,75 @@ function countFreshLogs(logs: CultivationLogSnapshot[], lastBreakthroughAt?: str
   return logs.filter((log) => Date.parse(log.studied_at) > breakthroughTime).length;
 }
 
+function calculateEffectiveStudy(logs: CultivationLogSnapshot[], now: Date): {
+  minutes: number;
+  days: number;
+  missingDurationCount: number;
+  cappedDurationCount: number;
+} {
+  const recentLogs = logs.filter((log) => isWithinDays(log.studied_at, now, 14));
+  const effectiveDays = new Set<string>();
+  let minutes = 0;
+  let missingDurationCount = 0;
+  let cappedDurationCount = 0;
+
+  for (const log of recentLogs) {
+    if (!hasStudyEvidence(log)) {
+      continue;
+    }
+
+    if (log.duration_minutes === null) {
+      missingDurationCount += 1;
+      continue;
+    }
+
+    if (log.duration_minutes <= 0) {
+      continue;
+    }
+
+    if (log.duration_minutes > EFFECTIVE_STUDY_MINUTES_PER_LOG_CAP) {
+      cappedDurationCount += 1;
+    }
+
+    minutes += Math.min(log.duration_minutes, EFFECTIVE_STUDY_MINUTES_PER_LOG_CAP);
+    effectiveDays.add(new Date(log.studied_at).toISOString().slice(0, 10));
+  }
+
+  return {
+    minutes,
+    days: effectiveDays.size,
+    missingDurationCount,
+    cappedDurationCount,
+  };
+}
+
+function hasStudyEvidence(log: CultivationLogSnapshot): boolean {
+  return !!log.evidence_type || !!log.content?.trim() || log.progress_before_percent !== log.progress_after_percent;
+}
+
+function buildDiagnosticWarnings(input: {
+  minutes: number;
+  missingDurationCount: number;
+  cappedDurationCount: number;
+}): string[] {
+  const warnings: string[] = [];
+  const remainingMinutes = Math.max(0, EFFECTIVE_STUDY_MINUTES_14D_TARGET - input.minutes);
+
+  if (remainingMinutes > 0) {
+    warnings.push(`近 14 天有效学习时间不足，还差 ${remainingMinutes} 分钟。`);
+  }
+
+  if (input.missingDurationCount > 0) {
+    warnings.push(`有 ${input.missingDurationCount} 条出关记录缺少有效学习时长，暂不阻断突破。`);
+  }
+
+  if (input.cappedDurationCount > 0) {
+    warnings.push(`有 ${input.cappedDurationCount} 条出关记录超过 ${EFFECTIVE_STUDY_MINUTES_PER_LOG_CAP} 分钟，已按上限计入。`);
+  }
+
+  return warnings;
+}
+
 function isWithinDays(value: string, now: Date, days: number): boolean {
   const time = Date.parse(value);
   if (!Number.isFinite(time)) {
@@ -226,25 +324,25 @@ function getBreakthroughBottlenecks(input: {
   if (input.realmRank >= realmNames.length - 1) {
     bottlenecks.push('当前已到达最高境界，暂不开放继续突破。');
   }
-  if (input.coreResourceCount < 1) {
+  if (input.coreResourceCount < BREAKTHROUGH_TARGETS.core_resource_count) {
     bottlenecks.push('至少需要 1 份核心功法。');
   }
-  if (input.metrics.core_mastery < 80) {
+  if (input.metrics.core_mastery < BREAKTHROUGH_TARGETS.core_mastery) {
     bottlenecks.push('核心功法掌握度需达到 80%。');
   }
-  if (input.trialResourceCount < 1) {
+  if (input.trialResourceCount < BREAKTHROUGH_TARGETS.trial_resource_count) {
     bottlenecks.push('至少需要 1 个突破试炼或练习类资料。');
   }
-  if (input.metrics.trial_mastery < 70) {
+  if (input.metrics.trial_mastery < BREAKTHROUGH_TARGETS.trial_mastery) {
     bottlenecks.push('突破试炼掌握度需达到 70%。');
   }
-  if (input.daoFoundationScore < 80) {
+  if (input.daoFoundationScore < BREAKTHROUGH_TARGETS.dao_foundation_score) {
     bottlenecks.push('道基评分需达到 80。');
   }
-  if (input.recentLogCount < 1) {
+  if (input.recentLogCount < BREAKTHROUGH_TARGETS.recent_log_count) {
     bottlenecks.push('最近 14 天内需要至少 1 条出关记录。');
   }
-  if (input.freshLogCount < 1) {
+  if (input.freshLogCount < BREAKTHROUGH_TARGETS.fresh_log_count) {
     bottlenecks.push('上次突破后需要新的出关记录。');
   }
 

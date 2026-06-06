@@ -5,6 +5,7 @@ import type { GetEnumsOutput } from '../../../shared/dto';
 import type { CultivationRole, OpenKind, ResourceType } from '../../../shared/enums';
 import { handleModalKeyDown } from '../../lib/focus';
 import type { ResourceEditDraft } from '../../types';
+import { getResourceWeightDisplay } from './resourceDisplay';
 
 type ResourceEditModalProps = {
   draft: ResourceEditDraft;
@@ -20,6 +21,8 @@ type ResourceEditModalProps = {
 };
 
 export function ResourceEditModal({ draft, resourceTypes, cultivationRoles, openKinds, resourceStatuses, busy, onChange, onSubmit, onPickPath, onClose }: ResourceEditModalProps) {
+  const weightDisplay = getResourceWeightDisplay(Number(draft.mastery_weight));
+
   return (
     <div className="modal-backdrop" role="presentation">
       <form className="modal" onSubmit={onSubmit} onKeyDown={(event) => handleModalKeyDown(event, onClose)} role="dialog" aria-modal="true" aria-labelledby="resource-edit-title">
@@ -61,9 +64,17 @@ export function ResourceEditModal({ draft, resourceTypes, cultivationRoles, open
           <input value={draft.mastery_group} onChange={(event) => onChange({ ...draft, mastery_group: event.target.value })} maxLength={120} placeholder="可空" />
         </label>
         <label>
-          权重
-          <input value={draft.mastery_weight} onChange={(event) => onChange({ ...draft, mastery_weight: event.target.value })} type="number" min={1} max={5} />
+          方向代表性
+          <input
+            value={draft.mastery_weight}
+            onChange={(event) => onChange({ ...draft, mastery_weight: event.target.value })}
+            type="number"
+            min={1}
+            max={5}
+            aria-describedby="resource-edit-weight-hint"
+          />
         </label>
+        <p id="resource-edit-weight-hint" className="field-hint">{weightDisplay.description}</p>
         <label>
           打开方式
           <select value={draft.open_kind} onChange={(event) => onChange({ ...draft, open_kind: event.target.value as OpenKind })}>

@@ -2,8 +2,8 @@ import { BookOpen, Play, RefreshCw, Search, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import type { GetHomeOverviewOutput, ResourceSummary } from '../../../shared/dto';
-import type { ResourceStatus, ResourceType } from '../../../shared/enums';
 import { ProgressBar } from '../../components/ProgressBar';
+import { getResourceRoleDisplay, getResourceStatusLabel, getResourceTypeLabel } from './resourceDisplay';
 
 type GlobalLibraryProps = {
   overview: GetHomeOverviewOutput;
@@ -32,9 +32,6 @@ export function GlobalLibrary({ overview, onContinueResource, onOpenLog, busy }:
 
   useEffect(() => {
     if (!hasProjects) {
-      setAllResources(EMPTY_AGGREGATED_RESOURCES);
-      setErrorMessage(null);
-      setLoading(false);
       return;
     }
 
@@ -114,27 +111,8 @@ export function GlobalLibrary({ overview, onContinueResource, onOpenLog, busy }:
 
   const hasAnyResources = effectiveResources.length > 0;
   const hasFilteredResources = filteredResources.length > 0;
-  const isLoadFailed = !isLoading && errorMessage !== null;
+  const isLoadFailed = hasProjects && !isLoading && errorMessage !== null;
   const isFilteredEmpty = !isLoadFailed && hasAnyResources && !hasFilteredResources;
-
-  const typeLabels: Record<ResourceType, string> = {
-    document: '文献',
-    video: '影像',
-    web: '灵网',
-    course: '功课',
-    repo: '宝库',
-    exercise: '历练',
-    book: '典籍',
-    other: '奇珍',
-  };
-
-  const statusLabels: Record<ResourceStatus, string> = {
-    not_started: '尚未面世',
-    learning: '正在参悟',
-    paused: '道行搁置',
-    review: '温故知新',
-    completed: '大圆满',
-  };
 
   return (
     <div className="global-library-panel">
@@ -241,11 +219,16 @@ export function GlobalLibrary({ overview, onContinueResource, onOpenLog, busy }:
               </tr>
             </thead>
             <tbody>
-              {filteredResources.map(({ resource, projectName }) => (
+              {filteredResources.map(({ resource, projectName }) => {
+                const roleDisplay = getResourceRoleDisplay(resource.cultivation_role);
+                return (
                 <tr key={resource.id}>
                   <td style={{ fontWeight: 600, color: 'var(--accent-strong)' }}>{projectName}</td>
                   <td>
                     <strong style={{ color: 'var(--text)' }}>{resource.title}</strong>
+                    <div className="text-xs muted truncate max-w-[280px]" title={roleDisplay.description} style={{ marginTop: '2px' }}>
+                      定位：{roleDisplay.label}
+                    </div>
                     {resource.next_action && (
                       <div className="text-xs muted truncate max-w-[280px]" title={`下步行动: ${resource.next_action}`} style={{ marginTop: '2px' }}>
                         目标：{resource.next_action}
@@ -254,7 +237,7 @@ export function GlobalLibrary({ overview, onContinueResource, onOpenLog, busy }:
                   </td>
                   <td>
                     <span className={`resource-badge ${resource.type}`}>
-                      {typeLabels[resource.type] || resource.type}
+                      {getResourceTypeLabel(resource.type)}
                     </span>
                   </td>
                   <td>
@@ -276,7 +259,7 @@ export function GlobalLibrary({ overview, onContinueResource, onOpenLog, busy }:
                               : 'var(--muted)',
                       }}
                     >
-                      {statusLabels[resource.status] || resource.status}
+                      {getResourceStatusLabel(resource.status)}
                     </span>
                   </td>
                   <td>
@@ -285,6 +268,7 @@ export function GlobalLibrary({ overview, onContinueResource, onOpenLog, busy }:
                         className="primary-button"
                         type="button"
                         title="继续闭关参悟"
+                        aria-label={`继续学习 ${resource.title}`}
                         onClick={() => void onContinueResource(resource)}
                         disabled={busy}
                       >
@@ -295,6 +279,7 @@ export function GlobalLibrary({ overview, onContinueResource, onOpenLog, busy }:
                         className="ghost-button"
                         type="button"
                         title="记录出关功过"
+                        aria-label={`记录进度 ${resource.title}`}
                         onClick={() => onOpenLog(resource, 'manual')}
                         disabled={busy}
                       >
@@ -304,7 +289,8 @@ export function GlobalLibrary({ overview, onContinueResource, onOpenLog, busy }:
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         ) : isFilteredEmpty ? (

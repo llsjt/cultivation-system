@@ -8,8 +8,8 @@
   "scripts": {
     "dev": "corepack pnpm run rebuild:electron && electron-vite dev --config config/electron.vite.config.ts",
     "build": "tsc -b && electron-vite build --config config/electron.vite.config.ts",
-    "build:main": "electron-vite build --main --config config/electron.vite.config.ts",
-    "build:renderer": "electron-vite build --renderer --config config/electron.vite.config.ts",
+    "build:main": "electron-vite build --config config/electron.vite.config.ts",
+    "build:renderer": "electron-vite build --config config/electron.vite.config.ts",
     "typecheck": "tsc -b",
     "test": "corepack pnpm run rebuild:node && vitest run",
     "lint": "eslint -c config/eslint.config.js .",
@@ -20,7 +20,8 @@
     "rebuild:electron": "electron-rebuild -f -w better-sqlite3",
     "package:portable": "node scripts/package-portable.mjs",
     "smoke:portable": "node scripts/portable-smoke.mjs",
-    "acceptance:ui": "node scripts/m5-ui-acceptance.mjs"
+    "acceptance:ui": "node scripts/m5-ui-acceptance.mjs",
+    "acceptance:ui:v1.6": "node scripts/v1.6-ui-acceptance.mjs"
   },
   "dependencies": {
     "better-sqlite3": "12.10.0",

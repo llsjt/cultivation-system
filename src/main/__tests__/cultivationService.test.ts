@@ -232,6 +232,213 @@ describe('CultivationService', () => {
     }
   });
 
+  it('derives effective study minutes from saved log duration and progress changes', () => {
+    const { db, service } = createService();
+
+    try {
+      const project = service.createProject({ name: 'Effective Study' });
+      const core = service.createResource({
+        project_id: project.id,
+        title: 'Core lesson',
+        type: 'document',
+        open_kind: 'record_only',
+        cultivation_role: 'core',
+        initial_progress_percent: 90,
+      });
+      const trial = service.createResource({
+        project_id: project.id,
+        title: 'Trial lesson',
+        type: 'exercise',
+        open_kind: 'record_only',
+        cultivation_role: 'trial',
+        initial_progress_percent: 90,
+      });
+
+      service.saveStudyLog({
+        resource_id: core.id,
+        source: 'record_only',
+        progress_percent: 100,
+        duration_minutes: 60,
+        resource_updated_at_before: core.updated_at,
+      });
+      service.saveStudyLog({
+        resource_id: trial.id,
+        source: 'record_only',
+        progress_percent: 100,
+        duration_minutes: 60,
+        resource_updated_at_before: trial.updated_at,
+      });
+
+      const cultivation = service.getProjectCultivation(project.id);
+      expect(cultivation.effective_study_minutes_14d).toBe(120);
+      expect(cultivation.effective_study_minutes_remaining).toBe(0);
+      expect(cultivation.effective_study_days_14d).toBeGreaterThanOrEqual(1);
+      expect(cultivation.missing_duration_log_count).toBe(0);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('keeps old logs without duration as soft diagnostics', () => {
+    const { db, service } = createService();
+
+    try {
+      const project = service.createProject({ name: 'Legacy Logs' });
+      const core = service.createResource({
+        project_id: project.id,
+        title: 'Core legacy',
+        type: 'document',
+        open_kind: 'record_only',
+        cultivation_role: 'core',
+        initial_progress_percent: 100,
+      });
+      const trial = service.createResource({
+        project_id: project.id,
+        title: 'Trial legacy',
+        type: 'exercise',
+        open_kind: 'record_only',
+        cultivation_role: 'trial',
+        initial_progress_percent: 100,
+      });
+
+      service.saveStudyLog({
+        resource_id: core.id,
+        source: 'record_only',
+        progress_percent: 100,
+        evidence_type: 'assessment',
+        resource_updated_at_before: core.updated_at,
+      });
+      service.saveStudyLog({
+        resource_id: trial.id,
+        source: 'record_only',
+        progress_percent: 100,
+        evidence_type: 'practice',
+        resource_updated_at_before: trial.updated_at,
+      });
+
+      const cultivation = service.getProjectCultivation(project.id);
+      expect(cultivation.can_breakthrough).toBe(true);
+      expect(cultivation.effective_study_minutes_14d).toBe(0);
+      expect(cultivation.missing_duration_log_count).toBe(2);
+      expect(cultivation.diagnostic_warnings).toContain('有 2 条出关记录缺少有效学习时长，暂不阻断突破。');
+    } finally {
+      db.close();
+    }
+  });
+
+  it('caps unusually long saved durations in cultivation diagnostics', () => {
+    const { db, service } = createService();
+
+    try {
+      const project = service.createProject({ name: 'Long Session' });
+      const core = service.createResource({
+        project_id: project.id,
+        title: 'Core long',
+        type: 'document',
+        open_kind: 'record_only',
+        cultivation_role: 'core',
+        initial_progress_percent: 100,
+      });
+
+      service.saveStudyLog({
+        resource_id: core.id,
+        source: 'record_only',
+        progress_percent: 100,
+        duration_minutes: 1440,
+        evidence_type: 'assessment',
+        resource_updated_at_before: core.updated_at,
+      });
+
+      const cultivation = service.getProjectCultivation(project.id);
+      expect(cultivation.effective_study_minutes_14d).toBe(180);
+      expect(cultivation.capped_duration_log_count).toBe(1);
+      expect(cultivation.diagnostic_warnings).toContain('有 1 条出关记录超过 180 分钟，已按上限计入。');
+    } finally {
+      db.close();
+    }
+  });
+
+  it('does not count pending duration until the pending session is saved as a study log', async () => {
+    const { db, service } = createService();
+    const tempDir = mkdtempSync(path.join(tmpdir(), 'cultivation-pending-duration-'));
+    const tempFile = path.join(tempDir, 'lesson.txt');
+    writeFileSync(tempFile, 'lesson');
+    shellMocks.openPath.mockResolvedValue('');
+
+    try {
+      const project = service.createProject({ name: 'Pending Duration' });
+      const resource = service.createResource({
+        project_id: project.id,
+        title: 'Timed pending lesson',
+        type: 'document',
+        open_kind: 'file',
+        path_or_url: tempFile,
+        initial_progress_percent: 20,
+      });
+      const opened = await service.continueResource({ resource_id: resource.id });
+      expect(opened.result).toBe('opened');
+
+      db.prepare('UPDATE pending_study_sessions SET closed_at = ?, duration_minutes = ?, close_source = ? WHERE id = ?').run(
+        new Date().toISOString(),
+        45,
+        'user_ended',
+        opened.pending?.id,
+      );
+
+      expect(service.getProjectCultivation(project.id).effective_study_minutes_14d).toBe(0);
+
+      service.saveStudyLog({
+        resource_id: resource.id,
+        source: 'pending',
+        progress_percent: 45,
+        resource_updated_at_before: opened.pending?.resource_updated_at_before ?? '',
+      });
+
+      expect(service.getProjectCultivation(project.id).effective_study_minutes_14d).toBe(45);
+    } finally {
+      db.close();
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('uses non-reference exercise resources as trial fallback in service cultivation output', () => {
+    const { db, service } = createService();
+
+    try {
+      const project = service.createProject({ name: 'Exercise Fallback' });
+      service.createResource({
+        project_id: project.id,
+        title: 'Core',
+        type: 'document',
+        open_kind: 'record_only',
+        cultivation_role: 'core',
+        initial_progress_percent: 100,
+      });
+      service.createResource({
+        project_id: project.id,
+        title: 'Supplement exercise',
+        type: 'exercise',
+        open_kind: 'record_only',
+        cultivation_role: 'supplement',
+        initial_progress_percent: 100,
+      });
+      const referenceProject = service.createProject({ name: 'Reference Exercise' });
+      service.createResource({
+        project_id: referenceProject.id,
+        title: 'Reference exercise',
+        type: 'exercise',
+        open_kind: 'record_only',
+        cultivation_role: 'reference',
+        initial_progress_percent: 100,
+      });
+
+      expect(service.getProjectCultivation(project.id).trial_resource_count).toBe(1);
+      expect(service.getProjectCultivation(referenceProject.id).trial_resource_count).toBe(0);
+    } finally {
+      db.close();
+    }
+  });
+
   it('preserves omitted progress text and next action when saving a compact study log', () => {
     const { db, service } = createService();
 

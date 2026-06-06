@@ -233,6 +233,13 @@ export const GetProjectCultivationOutputSchema = z.object({
   core_resource_count: z.number().int().min(0),
   trial_resource_count: z.number().int().min(0),
   recent_log_count: z.number().int().min(0),
+  effective_study_minutes_14d: z.number().int().min(0),
+  effective_study_minutes_target: z.number().int().min(1),
+  effective_study_minutes_remaining: z.number().int().min(0),
+  effective_study_days_14d: z.number().int().min(0),
+  missing_duration_log_count: z.number().int().min(0),
+  capped_duration_log_count: z.number().int().min(0),
+  diagnostic_warnings: z.array(z.string()),
   bottlenecks: z.array(z.string()),
 });
 export const AttemptBreakthroughInputSchema = z.object({ project_id: idSchema }).strict();

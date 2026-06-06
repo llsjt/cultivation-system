@@ -60,6 +60,13 @@ const cultivation = {
   core_resource_count: 0,
   trial_resource_count: 0,
   recent_log_count: 0,
+  effective_study_minutes_14d: 0,
+  effective_study_minutes_target: 120,
+  effective_study_minutes_remaining: 120,
+  effective_study_days_14d: 0,
+  missing_duration_log_count: 0,
+  capped_duration_log_count: 0,
+  diagnostic_warnings: ['近 14 天有效学习时间不足，还差 120 分钟。'],
   bottlenecks: ['继续积累修炼记录'],
 } satisfies GetProjectCultivationOutput;
 

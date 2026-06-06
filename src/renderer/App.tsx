@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, Home, Library, Play, RefreshCcw, Sparkles, type LucideIcon } from 'lucide-react';
+import { BarChart3, Home, Library, RefreshCcw, Sparkles, type LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent } from 'react';
 
 import type {
@@ -13,15 +13,13 @@ import type {
 } from '../shared/dto';
 import type { CultivationRole, OpenKind, ResourceStatus, ResourceType } from '../shared/enums';
 import { ConfirmDialog } from './components/ConfirmDialog';
-import { ProgressBar } from './components/ProgressBar';
+import { CurrentStudyCockpit } from './features/projects/CurrentStudyCockpit';
 import { ProjectEditModal } from './features/projects/ProjectEditModal';
 import { ProjectSidebar } from './features/projects/ProjectSidebar';
 import { ProjectStatsPanel } from './features/projects/ProjectStatsPanel';
 import { ResourceDetailModal } from './features/resources/ResourceDetailModal';
 import { ResourceEditModal } from './features/resources/ResourceEditModal';
-import { ResourceManagementPanel } from './features/resources/ResourceManagementPanel';
 import { PendingConflictModal } from './features/studyLogs/PendingConflictModal';
-import { PendingStrip } from './features/studyLogs/PendingStrip';
 import { StudyLogModal } from './features/studyLogs/StudyLogModal';
 import { GlobalLibrary } from './features/resources/GlobalLibrary';
 import { AnalyticsDashboard } from './features/projects/AnalyticsDashboard';
@@ -30,6 +28,7 @@ import { BreakthroughOverlay } from './components/BreakthroughOverlay';
 import { run, showError } from './lib/actionRunner';
 import { feedbackMessage } from './lib/feedback';
 import { unwrap, unwrapResult } from './lib/ipc';
+import { buildCockpitViewModel, type LastStudyFeedbackInput } from './features/projects/cockpitViewModel';
 import type { ConfirmRequest, LogDraft, ProjectEditDraft, ResourceEditDraft, Toast, ToastInput } from './types';
 
 export { ProgressBar } from './components/ProgressBar';
@@ -41,10 +40,10 @@ type ParticleStyle = CSSProperties & {
 type AppTab = 'meditation' | 'library' | 'analytics' | 'spirit';
 
 const appTabs: { id: AppTab; label: string; Icon: LucideIcon }[] = [
-  { id: 'meditation', label: '当前学习', Icon: Home },
-  { id: 'library', label: '全部资料', Icon: Library },
-  { id: 'analytics', label: '学习统计', Icon: BarChart3 },
-  { id: 'spirit', label: '修行状态', Icon: Sparkles },
+  { id: 'meditation', label: '当前学习（驾驶舱）', Icon: Home },
+  { id: 'library', label: '资料（藏经阁）', Icon: Library },
+  { id: 'analytics', label: '修行统计', Icon: BarChart3 },
+  { id: 'spirit', label: '突破诊断', Icon: Sparkles },
 ];
 
 function stableUnit(index: number, salt: number): number {
@@ -74,6 +73,7 @@ export function App() {
   const [resourceEdit, setResourceEdit] = useState<ResourceEditDraft | null>(null);
   const [projectEdit, setProjectEdit] = useState<ProjectEditDraft | null>(null);
   const [resourceDetail, setResourceDetail] = useState<ResourceDetail | null>(null);
+  const [lastStudyFeedback, setLastStudyFeedback] = useState<LastStudyFeedbackInput | null>(null);
   const [pendingConflict, setPendingConflict] = useState<PendingSessionView | null>(null);
   const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -153,6 +153,23 @@ export function App() {
   const cultivationRoles = enums?.cultivation_role ?? [];
   const evidenceTypes = enums?.study_evidence_type ?? [];
   const anyModalOpen = Boolean(logDraft || resourceEdit || projectEdit || resourceDetail || pendingConflict || confirmRequest);
+  const cockpitNowSeed = overview?.last_saved_at ?? projectDetail?.recent_logs[0]?.studied_at ?? selectedProject?.updated_at ?? null;
+  const cockpitNow = useMemo(() => {
+    const timestamp = cockpitNowSeed ? Date.parse(cockpitNowSeed) : 0;
+    return new Date(Number.isFinite(timestamp) ? timestamp : 0);
+  }, [cockpitNowSeed]);
+  const cockpitViewModel = useMemo(
+    () =>
+      buildCockpitViewModel({
+        overview,
+        selectedProject,
+        projectDetail,
+        projectCultivation,
+        lastStudyFeedback,
+        now: cockpitNow,
+      }),
+    [cockpitNow, lastStudyFeedback, overview, projectCultivation, projectDetail, selectedProject],
+  );
 
   useEffect(() => {
     anyModalOpenRef.current = anyModalOpen;
@@ -433,8 +450,8 @@ export function App() {
       evidence_type: '',
       duration_hint:
         session.close_source === 'viewer_closed'
-          ? '已根据资料窗口打开到关闭时间记录，可修改。'
-          : '已根据打开资料到结束闭关时间记录，可修改。',
+          ? '已根据资料窗口打开到关闭时间自动填入有效学习时长，可修改。'
+          : '已根据打开资料到结束闭关时间自动填入有效学习时长，可修改。',
     });
   }, []);
 
@@ -624,6 +641,7 @@ export function App() {
       }
       const result = unwrapResult<SaveStudyLogOutput>(response);
       setLogDraft(null);
+      setLastStudyFeedback({ savedAt: new Date().toISOString(), output: result });
       await refresh();
       showToast({ kind: 'success', message: feedbackMessage(result) });
     });
@@ -877,78 +895,67 @@ export function App() {
 
         {/* Scrollable Content Body */}
         <div className="content-body">
-          {overview.pending ? (
-            <PendingStrip pending={overview.pending} busy={busy} onOpenLog={openPendingLog} onAbandon={abandonPending} />
-          ) : null}
-
           {/* Tab Conditional Rendering */}
           {activeTab === 'meditation' ? (
-            /* Core Grid: Main Column (details, resources) */
-            <div id="app-panel-meditation" className="content-grid meditation-grid" role="tabpanel" aria-labelledby="app-tab-meditation">
-              {/* Main Column */}
-              <div className="main-column">
-                {/* Recommended study card at the very top of main column */}
-                <section className="hero-panel">
-                  <p className="eyebrow">继续闭关</p>
-                  {overview.recommended ? (
-                    <>
-                      <h2>{overview.recommended.title}</h2>
-                      <p className="muted">{overview.recommended_project_name}</p>
-                      <ProgressBar value={overview.recommended.progress_percent} />
-                      <p className="next-action">{overview.recommended.next_action || '还没有设置下次闭关目标。'}</p>
-                      <div className="actions">
-                        <button className="primary-button" type="button" onClick={() => continueResource(overview.recommended!)} disabled={busy}>
-                          <Play size={16} />
-                          继续学习
-                        </button>
-                        <button className="ghost-button" type="button" onClick={() => openLog(overview.recommended!, 'manual')} disabled={busy}>
-                          <BookOpen size={16} />
-                          记录进度
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="empty">暂无可推荐资料，建议在下方挑选或加入新的参悟秘卷。</p>
-                  )}
-                </section>
-
-                <ResourceManagementPanel
-                  selectedProject={selectedProject}
-                  projectDetail={projectDetail}
-                  resourceTitle={resourceTitle}
-                  resourceType={resourceType}
-                  cultivationRole={cultivationRole}
-                  masteryGroup={masteryGroup}
-                  masteryWeight={masteryWeight}
-                  openKind={openKind}
-                  pathOrUrl={pathOrUrl}
-                  initialProgress={initialProgress}
-                  initialNextAction={initialNextAction}
-                  resourceTypes={resourceTypes}
-                  cultivationRoles={cultivationRoles}
-                  openKinds={openKinds}
-                  busy={busy}
-                  onResourceTitleChange={setResourceTitle}
-                  onResourceTypeChange={setResourceType}
-                  onCultivationRoleChange={setCultivationRole}
-                  onMasteryGroupChange={setMasteryGroup}
-                  onMasteryWeightChange={setMasteryWeight}
-                  onOpenKindChange={setOpenKind}
-                  onPathOrUrlChange={setPathOrUrl}
-                  onInitialProgressChange={setInitialProgress}
-                  onInitialNextActionChange={setInitialNextAction}
-                  onSubmitResource={submitResource}
-                  onPickPath={(kind) => pickPath(kind, false)}
-                  onEditProject={(project) => setProjectEdit({ id: project.id, name: project.name })}
-                  onDeleteProject={deleteProject}
-                  onContinueResource={continueResource}
-                  onOpenLog={openLog}
-                  onShowResourceDetail={showResourceDetail}
-                  onStartEditResource={startEditResource}
-                  onDeleteResource={deleteResource}
-                />
-              </div>
-
+            <div id="app-panel-meditation" className="tab-panel" role="tabpanel" aria-labelledby="app-tab-meditation">
+              <CurrentStudyCockpit
+                pending={overview.pending}
+                viewModel={cockpitViewModel}
+                busy={busy}
+                actions={{
+                  onContinueRecommended: async () => {
+                    if (cockpitViewModel.recommendation) {
+                      await continueResource(cockpitViewModel.recommendation.resource);
+                    }
+                  },
+                  onOpenRecommendedLog: () => {
+                    if (cockpitViewModel.recommendation) {
+                      openLog(cockpitViewModel.recommendation.resource, 'manual');
+                    }
+                  },
+                  onCreateResource: () => {
+                    document.getElementById('resource-title-input')?.focus();
+                  },
+                  onAttemptBreakthrough: attemptBreakthrough,
+                  onOpenPendingLog: openPendingLog,
+                  onAbandonPending: abandonPending,
+                }}
+                resourcePanelProps={{
+                  selectedProject,
+                  projectDetail,
+                  resourceTitle,
+                  resourceType,
+                  cultivationRole,
+                  masteryGroup,
+                  masteryWeight,
+                  openKind,
+                  pathOrUrl,
+                  initialProgress,
+                  initialNextAction,
+                  resourceTypes,
+                  cultivationRoles,
+                  openKinds,
+                  busy,
+                  onResourceTitleChange: setResourceTitle,
+                  onResourceTypeChange: setResourceType,
+                  onCultivationRoleChange: setCultivationRole,
+                  onMasteryGroupChange: setMasteryGroup,
+                  onMasteryWeightChange: setMasteryWeight,
+                  onOpenKindChange: setOpenKind,
+                  onPathOrUrlChange: setPathOrUrl,
+                  onInitialProgressChange: setInitialProgress,
+                  onInitialNextActionChange: setInitialNextAction,
+                  onSubmitResource: submitResource,
+                  onPickPath: (kind) => pickPath(kind, false),
+                  onEditProject: (project) => setProjectEdit({ id: project.id, name: project.name }),
+                  onDeleteProject: deleteProject,
+                  onContinueResource: continueResource,
+                  onOpenLog: openLog,
+                  onShowResourceDetail: showResourceDetail,
+                  onStartEditResource: startEditResource,
+                  onDeleteResource: deleteResource,
+                }}
+              />
             </div>
           ) : activeTab === 'library' ? (
             <div id="app-panel-library" className="tab-panel" role="tabpanel" aria-labelledby="app-tab-library">

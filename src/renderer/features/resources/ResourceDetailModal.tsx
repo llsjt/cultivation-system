@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import type { GetEnumsOutput, ResourceDetail } from '../../../shared/dto';
 import { ProgressBar } from '../../components/ProgressBar';
 import { handleModalKeyDown } from '../../lib/focus';
+import { getResourceRoleDisplay, getResourceStatusLabel, getResourceTypeLabel, getResourceWeightDisplay } from './resourceDisplay';
 
 type ResourceDetailModalProps = {
   detail: ResourceDetail;
@@ -11,6 +12,9 @@ type ResourceDetailModalProps = {
 };
 
 export function ResourceDetailModal({ detail, enums, onClose }: ResourceDetailModalProps) {
+  const roleDisplay = getResourceRoleDisplay(detail.cultivation_role);
+  const weightDisplay = getResourceWeightDisplay(detail.mastery_weight);
+
   return (
     <div className="modal-backdrop" role="presentation">
       <section className="modal" onKeyDown={(event) => handleModalKeyDown(event, onClose)} role="dialog" aria-modal="true" aria-labelledby="resource-detail-title">
@@ -35,15 +39,15 @@ export function ResourceDetailModal({ detail, enums, onClose }: ResourceDetailMo
           </div>
           <div>
             <dt>类型</dt>
-            <dd>{enums?.resource_type.find((type) => type.value === detail.type)?.label ?? detail.type}</dd>
+            <dd>{getResourceTypeLabel(detail.type)}</dd>
           </div>
           <div>
             <dt>修炼定位</dt>
-            <dd>{enums?.cultivation_role.find((role) => role.value === detail.cultivation_role)?.label ?? detail.cultivation_role}</dd>
+            <dd title={roleDisplay.description}>{roleDisplay.label}</dd>
           </div>
           <div>
-            <dt>同源组 / 权重</dt>
-            <dd>{detail.mastery_group ? `${detail.mastery_group} / ${detail.mastery_weight}` : `未分组 / ${detail.mastery_weight}`}</dd>
+            <dt>同源组 / 方向代表性</dt>
+            <dd title={weightDisplay.description}>{detail.mastery_group ? `${detail.mastery_group} / ${weightDisplay.valueLabel}` : `未分组 / ${weightDisplay.valueLabel}`}</dd>
           </div>
           <div>
             <dt>打开方式</dt>
@@ -51,7 +55,7 @@ export function ResourceDetailModal({ detail, enums, onClose }: ResourceDetailMo
           </div>
           <div>
             <dt>状态</dt>
-            <dd>{enums?.resource_status.find((status) => status.value === detail.status)?.themed_label ?? detail.status}</dd>
+            <dd>{getResourceStatusLabel(detail.status)}</dd>
           </div>
           <div>
             <dt>打开目标</dt>

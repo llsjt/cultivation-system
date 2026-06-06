@@ -710,7 +710,7 @@ export class CultivationService {
   private listCultivationLogs(projectId: string): CultivationLogSnapshot[] {
     return this.db
       .prepare(
-        `SELECT studied_at, content, evidence_type
+        `SELECT studied_at, duration_minutes, content, progress_before_percent, progress_after_percent, evidence_type
            FROM study_logs
           WHERE project_id = ?
           ORDER BY studied_at DESC, created_at DESC`,
