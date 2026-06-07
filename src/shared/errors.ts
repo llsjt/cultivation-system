@@ -10,6 +10,7 @@ export const errorCodes = [
   'DB_CONSTRAINT_FAILED',
   'MIGRATION_FAILED',
   'TRANSACTION_FAILED',
+  'IPC_CONTRACT_FAILED',
 ] as const;
 
 export type ErrorCode = (typeof errorCodes)[number];
@@ -33,6 +34,7 @@ export const ErrorMessages: Record<ErrorCode, Pick<AppErrorPayload, 'user_messag
   DB_CONSTRAINT_FAILED: { user_message: '保存失败，刚才填写的内容已保留。请稍后重试。', recoverable: true },
   MIGRATION_FAILED: { user_message: '数据升级未完成，应用已停止启动以保护数据。', recoverable: false },
   TRANSACTION_FAILED: { user_message: '保存失败，刚才填写的内容已保留。请稍后重试。', recoverable: true },
+  IPC_CONTRACT_FAILED: { user_message: '内部数据契约异常，请重启应用后再试。', recoverable: false },
 };
 
 export class AppError extends Error {

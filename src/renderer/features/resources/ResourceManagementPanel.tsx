@@ -1,15 +1,18 @@
 import { BookOpen, FilePlus2, Info, Pencil, Play, Plus, Search, Trash2 } from 'lucide-react';
-import { useState, type FormEvent, useMemo, useEffect } from 'react';
+import { type FormEvent, useMemo } from 'react';
 
-import type { GetEnumsOutput, GetHomeOverviewOutput, GetProjectDetailOutput, ResourceSummary, ResourceDetail } from '../../../shared/dto';
+import type { GetEnumsOutput, GetHomeOverviewOutput, GetProjectDetailOutput, ResourceSummary } from '../../../shared/dto';
 import type { CultivationRole, OpenKind, ResourceType } from '../../../shared/enums';
 import { ProgressBar } from '../../components/ProgressBar';
 import type { LogDraft } from '../../types';
+import { ResourceEmptyState } from './ResourceEmptyState';
 import { getResourceRoleDisplay, getResourceStatusLabel, getResourceTypeLabel, getResourceWeightDisplay } from './resourceDisplay';
+import { useResourcePanelState } from './useResourcePanelState';
+import { useResourceDetail } from './useResourceDetail';
 
 type ProjectSummary = GetHomeOverviewOutput['projects'][number];
 
-type ResourceManagementPanelProps = {
+export type ResourceManagementPanelProps = {
   selectedProject: ProjectSummary | null;
   projectDetail: GetProjectDetailOutput | null;
   resourceTitle: string;
@@ -44,24 +47,6 @@ type ResourceManagementPanelProps = {
   onStartEditResource: (resource: ResourceSummary) => Promise<void>;
   onDeleteResource: (resource: ResourceSummary) => Promise<void>;
 };
-
-type ResourcePanelViewState = {
-  projectId: string | null;
-  selectedResourceId: string | null;
-  isCreatingResource: boolean;
-  searchQuery: string;
-  statusFilter: string;
-};
-
-function createResourcePanelViewState(projectId: string | null): ResourcePanelViewState {
-  return {
-    projectId,
-    selectedResourceId: null,
-    isCreatingResource: false,
-    searchQuery: '',
-    statusFilter: 'all',
-  };
-}
 
 export function ResourceManagementPanel({
   selectedProject,
@@ -99,17 +84,8 @@ export function ResourceManagementPanel({
   onDeleteResource,
 }: ResourceManagementPanelProps) {
   const currentProjectId = selectedProject?.id ?? null;
-  const [viewState, setViewState] = useState<ResourcePanelViewState>(() => createResourcePanelViewState(currentProjectId));
-  const [resourceDetail, setResourceDetail] = useState<ResourceDetail | null>(null);
-  const activeViewState = viewState.projectId === currentProjectId ? viewState : createResourcePanelViewState(currentProjectId);
-  const { selectedResourceId, isCreatingResource, searchQuery, statusFilter } = activeViewState;
-  const updateViewState = (patch: Partial<Omit<ResourcePanelViewState, 'projectId'>>) => {
-    setViewState((state) => ({
-      ...(state.projectId === currentProjectId ? state : createResourcePanelViewState(currentProjectId)),
-      ...patch,
-      projectId: currentProjectId,
-    }));
-  };
+  const { viewState, updateViewState } = useResourcePanelState(currentProjectId);
+  const { selectedResourceId, isCreatingResource, searchQuery, statusFilter } = viewState;
 
   const preferredResourceId = useMemo(() => {
     const resources = projectDetail?.resources.items ?? [];
@@ -118,31 +94,8 @@ export function ResourceManagementPanel({
 
   const effectiveSelectedResourceId = isCreatingResource ? null : (selectedResourceId ?? preferredResourceId);
 
-  // Fetch local resource detail logs reactively when selection or log database updates
-  useEffect(() => {
-    if (!effectiveSelectedResourceId) {
-      return;
-    }
-    let active = true;
-    void window.api
-      .get_resource_detail(effectiveSelectedResourceId)
-      .then((res) => {
-        if (!active) {
-          return;
-        }
-        setResourceDetail(res.ok ? res.data : null);
-      })
-      .catch((err: unknown) => {
-        if (active) {
-          console.error('Failed to load resource detail:', err);
-          setResourceDetail(null);
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [effectiveSelectedResourceId, projectDetail?.resources.items]);
-  const selectedResourceDetail = resourceDetail?.id === effectiveSelectedResourceId ? resourceDetail : null;
+  const resourceDetailState = useResourceDetail(effectiveSelectedResourceId, projectDetail?.resources.items);
+  const selectedResourceDetail = resourceDetailState.detail?.id === effectiveSelectedResourceId ? resourceDetailState.detail : null;
 
   // Filter resources locally for master list
   const filteredResources = useMemo(() => {
@@ -526,16 +479,10 @@ export function ResourceManagementPanel({
                 })()}
               </div>
             ) : (
-              <div className="resource-detail-empty resource-empty-state">
-                <h3>{projectDetail?.resources.items.length ? '选择一份资料' : '还没有资料'}</h3>
-                <p className="text-xs muted">
-                  {projectDetail?.resources.items.length ? '从左侧列表选择资料以查看进度和最近记录。' : '添加第一份资料后，就可以开始记录学习进度。'}
-                </p>
-                <button className="primary-button" type="button" onClick={() => updateViewState({ selectedResourceId: null, isCreatingResource: true })}>
-                  <Plus size={14} />
-                  添加资料
-                </button>
-              </div>
+              <ResourceEmptyState
+                hasResources={Boolean(projectDetail?.resources.items.length)}
+                onCreate={() => updateViewState({ selectedResourceId: null, isCreatingResource: true })}
+              />
             )
           )}
         </div>

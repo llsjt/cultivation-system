@@ -1,9 +1,10 @@
-import { Save, X } from 'lucide-react';
+import { Save } from 'lucide-react';
 import type { FormEvent } from 'react';
 
 import type { GetEnumsOutput } from '../../../shared/dto';
 import type { ResourceStatus } from '../../../shared/enums';
-import { handleModalKeyDown } from '../../lib/focus';
+import { ModalActions } from '../../components/ModalActions';
+import { ModalFrame } from '../../components/ModalFrame';
 import type { LogDraft } from '../../types';
 
 type StudyLogModalProps = {
@@ -19,17 +20,7 @@ type StudyLogModalProps = {
 
 export function StudyLogModal({ draft, resourceStatuses, evidenceTypes, busy, onChange, onStatusChange, onSubmit, onClose }: StudyLogModalProps) {
   return (
-    <div className="modal-backdrop" role="presentation">
-      <form className="modal" onSubmit={onSubmit} onKeyDown={(event) => handleModalKeyDown(event, onClose)} role="dialog" aria-modal="true" aria-labelledby="study-log-title">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">出关记录：保存本次学习进度</p>
-            <h2 id="study-log-title">{draft.resource.title}</h2>
-          </div>
-          <button className="icon-button" type="button" onClick={onClose} title="关闭" aria-label="关闭出关记录">
-            <X size={18} />
-          </button>
-        </div>
+    <ModalFrame titleId="study-log-title" title={draft.resource.title} eyebrow="出关记录：保存本次学习进度" onClose={onClose} onSubmit={onSubmit} closeLabel="关闭出关记录">
         <label>
           出关进度
           <textarea value={draft.progress_text} onChange={(event) => onChange({ ...draft, progress_text: event.target.value })} maxLength={500} required autoFocus />
@@ -87,7 +78,7 @@ export function StudyLogModal({ draft, resourceStatuses, evidenceTypes, busy, on
         <p id="study-duration-hint" className="field-hint">
           {draft.duration_hint ?? '可留空；留空时仍能保存，但突破诊断会提示缺少有效学习时长。'}
         </p>
-        <div className="actions">
+        <ModalActions>
           <button className="primary-button" type="submit" disabled={busy}>
             <Save size={16} />
             保存记录
@@ -95,8 +86,7 @@ export function StudyLogModal({ draft, resourceStatuses, evidenceTypes, busy, on
           <button className="ghost-button" type="button" onClick={onClose}>
             取消
           </button>
-        </div>
-      </form>
-    </div>
+        </ModalActions>
+    </ModalFrame>
   );
 }

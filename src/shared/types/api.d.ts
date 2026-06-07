@@ -5,6 +5,7 @@ import type {
   CreateResourceInput,
   AttemptBreakthroughOutput,
   GetEnumsOutput,
+  GetGlobalResourcesOutput,
   GetHomeOverviewOutput,
   GetProjectCultivationOutput,
   GetProjectDetailOutput,
@@ -17,11 +18,14 @@ import type {
   ResourceSummary,
   SaveStudyLogInput,
   SaveStudyLogOutput,
+  SelectLocalFileInput,
+  SelectLocalFileOutput,
   UpdateResourceInput,
 } from '../dto';
 
 export interface CultivationAPI {
   get_home_overview(): Promise<IpcResult<GetHomeOverviewOutput>>;
+  get_global_resources(): Promise<IpcResult<GetGlobalResourcesOutput>>;
   list_projects(input?: ListProjectsInput): Promise<IpcResult<Page<ProjectSummary>>>;
   get_project_detail(project_id: string, input?: { limit?: number; offset?: number }): Promise<IpcResult<GetProjectDetailOutput>>;
   get_project_cultivation(project_id: string): Promise<IpcResult<GetProjectCultivationOutput>>;
@@ -40,7 +44,7 @@ export interface CultivationAPI {
   close_pending_session(session_id: string, close_source: 'viewer_closed' | 'user_ended' | 'app_recovered'): Promise<IpcResult<PendingSessionView>>;
   on_pending_session_closed(callback: (pending: PendingSessionView) => void): () => void;
   get_enums(): Promise<IpcResult<GetEnumsOutput>>;
-  select_local_file(input?: { properties?: Array<'openFile' | 'openDirectory'> }): Promise<IpcResult<string | null>>;
+  select_local_file(input?: SelectLocalFileInput): Promise<IpcResult<SelectLocalFileOutput>>;
 }
 
 declare global {

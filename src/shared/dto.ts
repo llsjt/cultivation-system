@@ -17,7 +17,8 @@ const nullableText = (max: number) => z.string().trim().max(max).optional().null
 const pageInputSchema = z.object({
   limit: z.number().int().min(1).max(100).default(50).optional(),
   offset: z.number().int().min(0).default(0).optional(),
-});
+}).strict();
+const selectLocalFilePropertySchema = z.enum(['openFile', 'openDirectory']);
 
 export const ProjectSummarySchema = z.object({
   id: idSchema,
@@ -83,6 +84,7 @@ export const PendingSessionViewSchema = z.object({
   next_action_before: z.string().nullable(),
   resource_updated_at_before: isoStringSchema,
 });
+export const PendingSessionClosedEventSchema = PendingSessionViewSchema;
 
 export const ResourceDetailSchema = ResourceSummarySchema.extend({
   path_or_url_display: z.string().nullable(),
@@ -108,11 +110,27 @@ export const GetProjectDetailInputSchema = z.object({
   project_id: idSchema,
   limit: z.number().int().min(1).max(100).default(100).optional(),
   offset: z.number().int().min(0).default(0).optional(),
-});
+}).strict();
 export const GetProjectDetailOutputSchema = z.object({
   project: ProjectSummarySchema,
   resources: pageOf(ResourceSummarySchema),
   recent_logs: z.array(StudyLogViewSchema),
+});
+
+export const GetGlobalResourcesInputSchema = z.undefined().optional();
+export const GlobalResourceProjectSchema = ProjectSummarySchema.pick({
+  id: true,
+  name: true,
+  status: true,
+  progress_percent: true,
+});
+export const GlobalResourceItemSchema = z.object({
+  resource: ResourceSummarySchema,
+  project: GlobalResourceProjectSchema,
+});
+export const GetGlobalResourcesOutputSchema = z.object({
+  items: z.array(GlobalResourceItemSchema),
+  total: z.number().int().min(0),
 });
 
 export const CreateProjectInputSchema = z
@@ -213,6 +231,14 @@ export const ClosePendingSessionInputSchema = z
 
 export const GetEnumsInputSchema = z.undefined().optional();
 
+export const SelectLocalFileInputSchema = z
+  .object({
+    properties: z.array(selectLocalFilePropertySchema).min(1).max(2).optional(),
+  })
+  .strict()
+  .default({});
+export const SelectLocalFileOutputSchema = z.string().min(1).nullable();
+
 export const CultivationMetricsSchema = z.object({
   core_mastery: z.number().int().min(0).max(100),
   trial_mastery: z.number().int().min(0).max(100),
@@ -268,9 +294,12 @@ export type ResourceSummary = z.infer<typeof ResourceSummarySchema>;
 export type ResourceDetail = z.infer<typeof ResourceDetailSchema>;
 export type StudyLogView = z.infer<typeof StudyLogViewSchema>;
 export type PendingSessionView = z.infer<typeof PendingSessionViewSchema>;
+export type PendingSessionClosedEvent = z.infer<typeof PendingSessionClosedEventSchema>;
 export type GetHomeOverviewOutput = z.infer<typeof GetHomeOverviewOutputSchema>;
 export type ListProjectsInput = z.input<typeof ListProjectsInputSchema>;
 export type GetProjectDetailOutput = z.infer<typeof GetProjectDetailOutputSchema>;
+export type GlobalResourceItem = z.infer<typeof GlobalResourceItemSchema>;
+export type GetGlobalResourcesOutput = z.infer<typeof GetGlobalResourcesOutputSchema>;
 export type CreateProjectInput = z.infer<typeof CreateProjectInputSchema>;
 export type UpdateProjectInput = z.infer<typeof UpdateProjectInputSchema>;
 export type CreateResourceInput = z.infer<typeof CreateResourceInputSchema>;
@@ -281,6 +310,8 @@ export type SaveStudyLogInput = z.infer<typeof SaveStudyLogInputSchema>;
 export type SaveStudyLogOutput = z.infer<typeof SaveStudyLogOutputSchema>;
 export type GetProjectCultivationOutput = z.infer<typeof GetProjectCultivationOutputSchema>;
 export type AttemptBreakthroughOutput = z.infer<typeof AttemptBreakthroughOutputSchema>;
+export type SelectLocalFileInput = z.input<typeof SelectLocalFileInputSchema>;
+export type SelectLocalFileOutput = z.infer<typeof SelectLocalFileOutputSchema>;
 export type GetEnumsOutput = {
   project_status: { value: z.infer<typeof ProjectStatusSchema>; plain_label: string; themed_label: string }[];
   resource_status: { value: z.infer<typeof ResourceStatusSchema>; plain_label: string; themed_label: string }[];

@@ -1,9 +1,10 @@
-import { Save, X } from 'lucide-react';
+import { Save } from 'lucide-react';
 import type { FormEvent } from 'react';
 
 import type { GetEnumsOutput } from '../../../shared/dto';
 import type { CultivationRole, OpenKind, ResourceType } from '../../../shared/enums';
-import { handleModalKeyDown } from '../../lib/focus';
+import { ModalActions } from '../../components/ModalActions';
+import { ModalFrame } from '../../components/ModalFrame';
 import type { ResourceEditDraft } from '../../types';
 import { getResourceWeightDisplay } from './resourceDisplay';
 
@@ -24,17 +25,7 @@ export function ResourceEditModal({ draft, resourceTypes, cultivationRoles, open
   const weightDisplay = getResourceWeightDisplay(Number(draft.mastery_weight));
 
   return (
-    <div className="modal-backdrop" role="presentation">
-      <form className="modal" onSubmit={onSubmit} onKeyDown={(event) => handleModalKeyDown(event, onClose)} role="dialog" aria-modal="true" aria-labelledby="resource-edit-title">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">资料编辑</p>
-            <h2 id="resource-edit-title">{draft.title}</h2>
-          </div>
-          <button className="icon-button" type="button" onClick={onClose} title="关闭" aria-label="关闭资料编辑">
-            <X size={18} />
-          </button>
-        </div>
+    <ModalFrame titleId="resource-edit-title" title={draft.title} eyebrow="资料编辑" onClose={onClose} onSubmit={onSubmit} closeLabel="关闭资料编辑">
         <label>
           资料名
           <input value={draft.title} onChange={(event) => onChange({ ...draft, title: event.target.value })} required maxLength={200} autoFocus />
@@ -117,7 +108,7 @@ export function ResourceEditModal({ draft, resourceTypes, cultivationRoles, open
               ))}
           </select>
         </label>
-        <div className="actions">
+        <ModalActions>
           <button className="primary-button" type="submit" disabled={busy}>
             <Save size={16} />
             保存资料
@@ -125,8 +116,7 @@ export function ResourceEditModal({ draft, resourceTypes, cultivationRoles, open
           <button className="ghost-button" type="button" onClick={onClose}>
             取消
           </button>
-        </div>
-      </form>
-    </div>
+        </ModalActions>
+    </ModalFrame>
   );
 }

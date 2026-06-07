@@ -1,9 +1,10 @@
 import { BookOpen, Play, RefreshCw, Search, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import type { GetHomeOverviewOutput, ResourceSummary } from '../../../shared/dto';
 import { ProgressBar } from '../../components/ProgressBar';
 import { getResourceRoleDisplay, getResourceStatusLabel, getResourceTypeLabel } from './resourceDisplay';
+import { useGlobalLibraryResources } from './useGlobalLibraryResources';
 
 type GlobalLibraryProps = {
   overview: GetHomeOverviewOutput;
@@ -20,63 +21,17 @@ type AggregatedResource = {
 const EMPTY_AGGREGATED_RESOURCES: AggregatedResource[] = [];
 
 export function GlobalLibrary({ overview, onContinueResource, onOpenLog, busy }: GlobalLibraryProps) {
-  const [allResources, setAllResources] = useState<AggregatedResource[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [projectFilter, setProjectFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const hasProjects = overview.projects.length > 0;
-
-  useEffect(() => {
-    if (!hasProjects) {
-      return;
-    }
-
-    let active = true;
-    const fetchAllResources = async () => {
-      setLoading(true);
-      setErrorMessage(null);
-      try {
-        const promises = overview.projects.map(async (project) => {
-          const res = await window.api.get_project_detail(project.id);
-          if (res.ok && res.data) {
-            return res.data.resources.items.map((item) => ({
-              resource: item,
-              projectName: project.name,
-            }));
-          }
-          throw new Error(`${project.name}：${res.ok ? '资料响应为空。' : res.error.user_message}`);
-        });
-        const results = await Promise.all(promises);
-        if (active) {
-          setAllResources(results.flat());
-          setErrorMessage(null);
-        }
-      } catch (err) {
-        console.error('Failed to aggregate global resources:', err);
-        if (active) {
-          setAllResources(EMPTY_AGGREGATED_RESOURCES);
-          setErrorMessage(err instanceof Error && err.message ? err.message : '全局资料库加载失败，请稍后重试。');
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void fetchAllResources();
-
-    return () => {
-      active = false;
-    };
-  }, [hasProjects, overview.projects, overview.last_saved_at, reloadKey]); // Refresh when project structure or logs change
-
-  const effectiveResources = hasProjects ? allResources : EMPTY_AGGREGATED_RESOURCES;
-  const isLoading = hasProjects && loading;
+  const globalResources = useGlobalLibraryResources({ enabled: hasProjects, lastSavedAt: overview.last_saved_at, reloadKey });
+  const effectiveResources = hasProjects
+    ? globalResources.items.map((item) => ({ resource: item.resource, projectName: item.project.name }))
+    : EMPTY_AGGREGATED_RESOURCES;
+  const isLoading = hasProjects && globalResources.loading;
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const hasActiveFilters =
     normalizedSearchQuery.length > 0 || projectFilter !== 'all' || typeFilter !== 'all' || statusFilter !== 'all';
@@ -107,11 +62,12 @@ export function GlobalLibrary({ overview, onContinueResource, onOpenLog, busy }:
 
   const retryLoadResources = () => {
     setReloadKey((value) => value + 1);
+    globalResources.reload();
   };
 
   const hasAnyResources = effectiveResources.length > 0;
   const hasFilteredResources = filteredResources.length > 0;
-  const isLoadFailed = hasProjects && !isLoading && errorMessage !== null;
+  const isLoadFailed = hasProjects && !isLoading && globalResources.errorMessage !== null;
   const isFilteredEmpty = !isLoadFailed && hasAnyResources && !hasFilteredResources;
 
   return (
@@ -198,7 +154,7 @@ export function GlobalLibrary({ overview, onContinueResource, onOpenLog, busy }:
           </div>
         ) : isLoadFailed ? (
           <div className="library-state library-state--error" role="alert">
-            <p className="empty py-12">全局资料库加载失败：{errorMessage}</p>
+            <p className="empty py-12">全局资料库加载失败：{globalResources.errorMessage}</p>
             <div className="library-state-actions">
               <button className="primary-button library-retry-button" type="button" onClick={retryLoadResources}>
                 <RefreshCw size={14} />

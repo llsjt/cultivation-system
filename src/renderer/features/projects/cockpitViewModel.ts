@@ -1,6 +1,6 @@
 import type { GetHomeOverviewOutput, GetProjectCultivationOutput, GetProjectDetailOutput, ResourceSummary, SaveStudyLogOutput } from '../../../shared/dto';
 import { buildBreakthroughDiagnosticViewModel, type BreakthroughDiagnosticViewModel } from './cultivationDiagnostics';
-import { getResourceRoleDisplay, getResourceStatusLabel, getResourceTypeLabel } from '../resources/resourceDisplay';
+import { getResourceRoleDisplay, getResourceStatusLabel, getResourceTypeLabel } from '../../lib/resourceDisplay';
 
 type ProjectSummary = GetHomeOverviewOutput['projects'][number];
 type StudyLogSummary = GetHomeOverviewOutput['recent_logs'][number];
